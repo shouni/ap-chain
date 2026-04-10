@@ -16,15 +16,15 @@ import (
 )
 
 type FetchRunner struct {
-	reader domain.ContentReader
-	scrape ports.ScrapeRunner
+	reader  domain.ContentReader
+	scraper ports.ScrapeRunner
 }
 
 // NewFetchRunner は FetchRunner の新しいインスタンスを作成します。
-func NewFetchRunner(reader domain.ContentReader, scrape ports.ScrapeRunner) *FetchRunner {
+func NewFetchRunner(reader domain.ContentReader, scraper ports.ScrapeRunner) *FetchRunner {
 	return &FetchRunner{
-		reader: reader,
-		scrape: scrape,
+		reader:  reader,
+		scraper: scraper,
 	}
 }
 
@@ -51,7 +51,7 @@ func (r *FetchRunner) Run(ctx context.Context, sourceURI string) ([]ports.URLRes
 	}
 
 	// 3. スクレイピング実行
-	results := r.scrape.Run(ctx, urls)
+	results := r.scraper.Run(ctx, urls)
 	if len(results) == 0 {
 		return nil, fmt.Errorf("スクレイピング結果が空です")
 	}

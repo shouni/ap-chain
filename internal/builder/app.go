@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 
 	"github.com/shouni/go-http-kit/httpkit"
 
@@ -17,8 +18,8 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 	defer func() {
 		if err != nil {
 			for _, r := range resources {
-				if r != nil {
-					_ = r.Close()
+				if closeErr := r.Close(); closeErr != nil {
+					slog.Warn("failed to close resource during cleanup", "error", closeErr)
 				}
 			}
 		}

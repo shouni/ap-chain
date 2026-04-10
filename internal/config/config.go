@@ -47,6 +47,8 @@ func (c *Config) Normalize() {
 	c.OutputFile = strings.TrimSpace(c.OutputFile)
 	c.MapModel = strings.TrimSpace(c.MapModel)
 	c.ReduceModel = strings.TrimSpace(c.ReduceModel)
+	c.ProjectID = strings.TrimSpace(c.ProjectID)
+	c.GeminiAPIKey = strings.TrimSpace(c.GeminiAPIKey)
 }
 
 // FillDefaults は、現在の設定で空のフィールドを envCfg の値で補完します。

@@ -22,8 +22,8 @@ const (
 
 // Config はコマンドラインフラグを保持する構造体です。
 type Config struct {
-	InputSource  string
-	OutputSource string
+	URL    string
+	Output string
 
 	HTTPTimeout        time.Duration
 	ScraperTimeout     time.Duration

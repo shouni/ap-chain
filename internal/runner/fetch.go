@@ -34,16 +34,18 @@ func (r *FetchRunner) Run(ctx context.Context, sourceURL string) ([]ports.URLRes
 		return nil, fmt.Errorf("入力ソース(--input)が指定されていません")
 	}
 
-	// 1. ソースコンテンツの読み込み (バリデーション済み)
+	// 1. ソースの読み込み
 	content, err := r.readContent(ctx, sourceURL)
 	if err != nil {
 		return nil, err
 	}
 
-	// 2. 有効なURLのみを抽出
-	urls := r.parseURLs(ctx, content)
+	// 2. 有効なURLの抽出
+	urls, err := r.parseURLs(ctx, content)
+	if err != nil {
+		return nil, fmt.Errorf("URLリストの解析に失敗しました: %w", err)
+	}
 
-	// 早期リターンにより無駄な処理を防止
 	if len(urls) == 0 {
 		return nil, fmt.Errorf("ソースファイルから有効なURLが一件も抽出されませんでした")
 	}
@@ -51,10 +53,9 @@ func (r *FetchRunner) Run(ctx context.Context, sourceURL string) ([]ports.URLRes
 	// 3. スクレイピング実行
 	results := r.scrape.Run(ctx, urls)
 	if len(results) == 0 {
-		return nil, fmt.Errorf("スクレイピング結果が空です。対象URLへのアクセスを確認してください。")
+		return nil, fmt.Errorf("スクレイピング結果が空です")
 	}
 
-	// 4. コンテンツの存在確認
 	var hasValidContent bool
 	for _, res := range results {
 		if res.Error == nil && res.Content != "" {
@@ -82,10 +83,15 @@ func (r *FetchRunner) readContent(ctx context.Context, sourceURL string) (string
 		}
 	}()
 
-	// LimitReader による OOM 防止
-	body, err := io.ReadAll(io.LimitReader(stream, config.MaxInputSize))
+	// Limit+1 バイト読み込み、切り捨てを検知する
+	limit := int64(config.MaxInputSize)
+	body, err := io.ReadAll(io.LimitReader(stream, limit+1))
 	if err != nil {
-		return "", fmt.Errorf("コンテンツの読み取りに失敗しました (上限10MB): %w", err)
+		return "", fmt.Errorf("コンテンツの読み取りに失敗しました: %w", err)
+	}
+
+	if int64(len(body)) > limit {
+		return "", fmt.Errorf("入力ファイルがサイズ上限 (%d MB) を超えています", limit/1024/1024)
 	}
 
 	trimmedContent := strings.TrimSpace(string(body))
@@ -96,18 +102,16 @@ func (r *FetchRunner) readContent(ctx context.Context, sourceURL string) (string
 }
 
 // parseURLs は content を行単位で分割し、有効なURLのみを抽出します。
-func (r *FetchRunner) parseURLs(ctx context.Context, content string) []string {
+func (r *FetchRunner) parseURLs(ctx context.Context, content string) ([]string, error) {
 	var urls []string
 	scanner := bufio.NewScanner(strings.NewReader(content))
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		// 空行やコメントをスキップ
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
 
-		// URL形式のバリデーション
 		if _, err := url.ParseRequestURI(line); err != nil {
 			slog.WarnContext(ctx, "無効なURL形式をスキップしました", "line", line, "error", err)
 			continue
@@ -116,5 +120,10 @@ func (r *FetchRunner) parseURLs(ctx context.Context, content string) []string {
 		urls = append(urls, line)
 	}
 
-	return urls
+	// Scannerの内部エラーをチェックし、呼び出し元に伝える
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("スキャン中にエラーが発生しました: %w", err)
+	}
+
+	return urls, nil
 }

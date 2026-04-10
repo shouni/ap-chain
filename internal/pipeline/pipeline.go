@@ -57,7 +57,7 @@ func (p *Pipeline) Execute(ctx context.Context) error {
 
 // fetch は、コンテンツ取得を実行します。
 func (p *Pipeline) fetch(ctx context.Context) ([]ports.URLResult, error) {
-	results, err := p.fetcher.Run(ctx, p.cfg.InputSource)
+	results, err := p.fetcher.Run(ctx, p.cfg.InputFile)
 	if err != nil {
 		return nil, fmt.Errorf("スクリプトテキスト作成に失敗しました: %w", err)
 	}
@@ -80,7 +80,7 @@ func (p *Pipeline) publish(
 	ctx context.Context,
 	content string,
 ) error {
-	err := p.publisher.Run(ctx, p.cfg.OutputSource, content)
+	err := p.publisher.Run(ctx, p.cfg.OutputFile, content)
 	if err != nil {
 		return fmt.Errorf("公開処理の実行に失敗しました: %w", err)
 	}

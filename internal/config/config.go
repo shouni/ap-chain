@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"time"
 
 	"github.com/shouni/go-utils/envutil"
@@ -22,21 +23,32 @@ const (
 
 // Config はコマンドラインフラグを保持する構造体です。
 type Config struct {
-	InputSource  string
-	OutputSource string
+	InputFile  string
+	OutputFile string
 
 	HTTPTimeout        time.Duration
 	ScraperTimeout     time.Duration
 	MaxScraperParallel int
 
-	MapModel    string
-	ReduceModel string
-	Concurrency int
-	LLMTimeout  time.Duration
-
 	ProjectID    string
 	GeminiAPIKey string
-	GCSBucket    string
+	MapModel     string
+	ReduceModel  string
+	Concurrency  int
+	LLMTimeout   time.Duration
+}
+
+// Normalize は設定値の文字列フィールドから前後の空白を一括で削除します。
+func (c *Config) Normalize() {
+	if c == nil {
+		return
+	}
+	c.InputFile = strings.TrimSpace(c.InputFile)
+	c.OutputFile = strings.TrimSpace(c.OutputFile)
+	c.MapModel = strings.TrimSpace(c.MapModel)
+	c.ReduceModel = strings.TrimSpace(c.ReduceModel)
+	c.ProjectID = strings.TrimSpace(c.ProjectID)
+	c.GeminiAPIKey = strings.TrimSpace(c.GeminiAPIKey)
 }
 
 // FillDefaults は、現在の設定で空のフィールドを envCfg の値で補完します。
@@ -63,6 +75,5 @@ func LoadConfig() *Config {
 	return &Config{
 		ProjectID:    envutil.GetEnv("GCP_PROJECT_ID", ""),
 		GeminiAPIKey: envutil.GetEnv("GEMINI_API_KEY", ""),
-		GCSBucket:    envutil.GetEnv("GCS_BUCKET", ""),
 	}
 }

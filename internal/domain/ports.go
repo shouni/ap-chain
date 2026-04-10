@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"io"
 
 	"github.com/shouni/go-web-exact/v2/ports"
 )
@@ -12,9 +13,9 @@ type Pipeline interface {
 	Execute(ctx context.Context) error
 }
 
-// FetchRunner は、URLリストに対してスクレイピング処理を実行者に委譲します。
+// FetchRunner は、指定されたソースからURLリストを取得し、スクレイピング処理を実行者に委譲します。
 type FetchRunner interface {
-	Run(ctx context.Context, urls []string) ([]ports.URLResult, error)
+	Run(ctx context.Context, sourceURI string) ([]ports.URLResult, error)
 }
 
 // CleanRunner は、URL結果のクリーンアップと構造化を実行する責務を持つインターフェースです。
@@ -25,6 +26,11 @@ type CleanRunner interface {
 // PublishRunner は、生成されたスクリプトの公開処理を実行する責務を持つインターフェースです。
 type PublishRunner interface {
 	Run(ctx context.Context, storageURI, content string) error
+}
+
+// ContentReader は、指定されたURIからコンテンツを取得するためのインターフェースです。
+type ContentReader interface {
+	Open(ctx context.Context, uri string) (io.ReadCloser, error)
 }
 
 // Cleaner は、URL結果のクリーンアップと構造化を実行する責務を持つインターフェースです。

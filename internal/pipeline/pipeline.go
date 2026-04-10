@@ -57,12 +57,7 @@ func (p *Pipeline) Execute(ctx context.Context) error {
 
 // fetch は、コンテンツ取得を実行します。
 func (p *Pipeline) fetch(ctx context.Context) ([]ports.URLResult, error) {
-	// TODO::テスト用
-	var urls []string
-	urls = append(urls, "https://github.com/shouni/go-http-kit")
-	urls = append(urls, "https://github.com/shouni/go-remote-io")
-
-	results, err := p.fetcher.Run(ctx, urls)
+	results, err := p.fetcher.Run(ctx, p.cfg.InputSource)
 	if err != nil {
 		return nil, fmt.Errorf("スクリプトテキスト作成に失敗しました: %w", err)
 	}

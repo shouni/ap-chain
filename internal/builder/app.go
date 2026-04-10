@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 
 	"github.com/shouni/go-http-kit/httpkit"
 
@@ -13,13 +12,13 @@ import (
 )
 
 // BuildContainer は外部サービスとの接続を確立し、依存関係を組み立てた app.Container を返します。
-func BuildContainer(ctx context.Context, cfg *config.Config) (*app.Container, error) {
+func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Container, err error) {
 	var resources []io.Closer
 	defer func() {
-		for _, r := range resources {
-			if r != nil {
-				if closeErr := r.Close(); closeErr != nil {
-					slog.Warn("failed to close resource during cleanup", "error", closeErr)
+		if err != nil {
+			for _, r := range resources {
+				if r != nil {
+					_ = r.Close()
 				}
 			}
 		}

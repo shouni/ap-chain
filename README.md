@@ -1,7 +1,7 @@
 # 🤖 AP Chain
 
 [![Language](https://img.shields.io/badge/Language-Go-blue)](https://golang.org/)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/shouni/ap-chain](https://golang.org/)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/shouni/ap-chain)](https://golang.org/)
 [![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/shouni/ap-chain)](https://github.com/shouni/ap-chain/tags)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

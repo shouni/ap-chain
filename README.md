@@ -32,6 +32,14 @@
 | **言語** | **Go (Golang)** | ツールの開発言語。並列処理と堅牢な実行環境を提供します。 |
 | **CLI** | **Cobra** | コマンドライン引数とオプションの解析に使用します。 |
 
+
+## 🧱 基盤ライブラリ (Core Components)
+
+AP Chain は以下の自作ライブラリ群を統合して構築されています：
+* **[Go Web Reader](https://github.com/shouni/go-web-reader)**: マルチプロトコル I/O と本文抽出。
+* **[Go Remote IO](https://github.com/shouni/go-remote-io)**: GCS/ローカルストレージの抽象化。
+* **[Go Web Exact](https://github.com/shouni/go-web-exact)**: 高精度なメインコンテンツ抽出。
+
 -----
 
 ## 🛠️ 事前準備と設定

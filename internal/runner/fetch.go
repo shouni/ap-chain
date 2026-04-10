@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net/url"
 	"strings"
 
 	"github.com/shouni/go-web-exact/v2/ports"
+	"github.com/shouni/netarmor/securenet"
 
 	"ap-chain/internal/config"
 	"ap-chain/internal/domain"
@@ -112,7 +112,8 @@ func (r *FetchRunner) parseURLs(ctx context.Context, content string) ([]string, 
 			continue
 		}
 
-		if _, err := url.ParseRequestURI(line); err != nil {
+		ok, err := securenet.IsSafeURL(line)
+		if !ok || err != nil {
 			slog.WarnContext(ctx, "無効なURL形式をスキップしました", "line", line, "error", err)
 			continue
 		}

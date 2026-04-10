@@ -36,16 +36,16 @@
 
 ## 🛠️ 事前準備と設定
 
-### LLM API キーの設定 (必須)
-
-LLM（Gemini）を利用するためには、APIキーが必要です。設定は以下の**どちらか**の方法で行います。
+Gemini API を利用するために、APIキーが必要です。設定は以下の**どちらか**の方法で行います。
 
 ```bash
-# 例: 環境変数に設定する場合
-export GEMINI_API_KEY="YOUR_GEMINI_API_KEY" 
+# GCP プロジェクトID
+export GCP_PROJECT_ID="YOUR_GCP_PROJECT_ID"
+# Gemini API キー
+export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
 ```
 
------
+---
 
 ## 🚀 使い方 (Usage)
 

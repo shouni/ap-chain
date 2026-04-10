@@ -29,13 +29,13 @@ func NewFetchRunner(reader domain.ContentReader, scrape ports.ScrapeRunner) *Fet
 }
 
 // Run は、ソースURLからURLリストを取得し、スクレイピングを実行します。
-func (r *FetchRunner) Run(ctx context.Context, sourceURL string) ([]ports.URLResult, error) {
-	if sourceURL == "" {
+func (r *FetchRunner) Run(ctx context.Context, sourceURI string) ([]ports.URLResult, error) {
+	if sourceURI == "" {
 		return nil, fmt.Errorf("入力ソース(--input)が指定されていません")
 	}
 
 	// 1. ソースの読み込み
-	content, err := r.readContent(ctx, sourceURL)
+	content, err := r.readContent(ctx, sourceURI)
 	if err != nil {
 		return nil, err
 	}

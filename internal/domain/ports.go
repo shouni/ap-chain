@@ -13,9 +13,9 @@ type Pipeline interface {
 	Execute(ctx context.Context) error
 }
 
-// FetchRunner は、URLのコンテントリストに対してスクレイピング処理を実行者に委譲します。
+// FetchRunner は、指定されたソースからURLリストを取得し、スクレイピング処理を実行者に委譲します。
 type FetchRunner interface {
-	Run(ctx context.Context, sourceURL string) ([]ports.URLResult, error)
+	Run(ctx context.Context, sourceURI string) ([]ports.URLResult, error)
 }
 
 // CleanRunner は、URL結果のクリーンアップと構造化を実行する責務を持つインターフェースです。

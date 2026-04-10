@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/url"
 	"strings"
 
 	"github.com/shouni/go-web-exact/v2/ports"
@@ -27,36 +28,43 @@ func NewFetchRunner(reader domain.ContentReader, scrape ports.ScrapeRunner) *Fet
 	}
 }
 
-// Run は、URLのコンテントリストに対してスクレイピング処理を実行者に委譲します。
+// Run は、ソースURLからURLリストを取得し、スクレイピングを実行します。
 func (r *FetchRunner) Run(ctx context.Context, sourceURL string) ([]ports.URLResult, error) {
 	if sourceURL == "" {
-		return nil, fmt.Errorf("入力ソース(--url)が指定されていません")
+		return nil, fmt.Errorf("入力ソース(--input)が指定されていません")
 	}
+
+	// 1. ソースコンテンツの読み込み (バリデーション済み)
 	content, err := r.readContent(ctx, sourceURL)
 	if err != nil {
 		return nil, err
 	}
 
-	urls, err := r.parseURLs(content)
-	if err != nil {
-		return nil, fmt.Errorf("ソースファイルからURLを抽出できませんでした")
+	// 2. 有効なURLのみを抽出
+	urls := r.parseURLs(ctx, content)
+
+	// 早期リターンにより無駄な処理を防止
+	if len(urls) == 0 {
+		return nil, fmt.Errorf("ソースファイルから有効なURLが一件も抽出されませんでした")
 	}
 
+	// 3. スクレイピング実行
 	results := r.scrape.Run(ctx, urls)
 	if len(results) == 0 {
-		return nil, fmt.Errorf("取得された結果が空です。URLリストを確認してください。")
+		return nil, fmt.Errorf("スクレイピング結果が空です。対象URLへのアクセスを確認してください。")
 	}
 
+	// 4. コンテンツの存在確認
 	var hasValidContent bool
-	for _, r := range results {
-		if r.Error == nil && r.Content != "" {
+	for _, res := range results {
+		if res.Error == nil && res.Content != "" {
 			hasValidContent = true
 			break
 		}
 	}
 
 	if !hasValidContent {
-		return nil, fmt.Errorf("処理可能なWebコンテンツを一件も取得できませんでした。")
+		return nil, fmt.Errorf("処理可能なWebコンテンツを一件も取得できませんでした")
 	}
 
 	return results, nil
@@ -74,9 +82,10 @@ func (r *FetchRunner) readContent(ctx context.Context, sourceURL string) (string
 		}
 	}()
 
-	body, err := io.ReadAll(stream)
+	// LimitReader による OOM 防止
+	body, err := io.ReadAll(io.LimitReader(stream, config.MaxInputSize))
 	if err != nil {
-		return "", fmt.Errorf("コンテンツの読み込みに失敗しました: %w", err)
+		return "", fmt.Errorf("コンテンツの読み取りに失敗しました (上限10MB): %w", err)
 	}
 
 	trimmedContent := strings.TrimSpace(string(body))
@@ -86,19 +95,26 @@ func (r *FetchRunner) readContent(ctx context.Context, sourceURL string) (string
 	return trimmedContent, nil
 }
 
-// parseURLs は content を行単位で分割し、空行やコメントを除外してURLリストを返します。
-func (r *FetchRunner) parseURLs(content string) ([]string, error) {
+// parseURLs は content を行単位で分割し、有効なURLのみを抽出します。
+func (r *FetchRunner) parseURLs(ctx context.Context, content string) []string {
 	var urls []string
 	scanner := bufio.NewScanner(strings.NewReader(content))
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
+		// 空行やコメントをスキップ
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
+
+		// URL形式のバリデーション
+		if _, err := url.ParseRequestURI(line); err != nil {
+			slog.WarnContext(ctx, "無効なURL形式をスキップしました", "line", line, "error", err)
+			continue
+		}
+
 		urls = append(urls, line)
 	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("URLのパース中にエラーが発生しました: %w", err)
-	}
-	return urls, nil
+
+	return urls
 }

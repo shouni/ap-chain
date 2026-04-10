@@ -37,6 +37,8 @@ func initAppPreRunE(cmd *cobra.Command, args []string) error {
 
 // addAppPersistentFlags は、アプリケーション固有の永続フラグをルートコマンドに追加します。
 func addAppPersistentFlags(rootCmd *cobra.Command) {
-	rootCmd.Flags().StringVarP(&opts.InputSource, "input", "i", "", "入力ファイル")
-	rootCmd.Flags().StringVarP(&opts.OutputSource, "output", "o", "onput/output.md", "出力ファイル")
+	rootCmd.PersistentFlags().StringVarP(&opts.InputSource, "input", "i", "", "処理対象のURLリストファイル (必須)")
+	rootCmd.PersistentFlags().StringVarP(&opts.OutputSource, "output", "o", "./output/output.md", "出力先パス (local or gs://)")
+
+	_ = rootCmd.MarkPersistentFlagRequired("input")
 }

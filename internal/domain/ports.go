@@ -31,7 +31,6 @@ type PublishRunner interface {
 // ContentReader は、指定されたURIからコンテンツを取得するためのインターフェースです。
 type ContentReader interface {
 	Open(ctx context.Context, uri string) (io.ReadCloser, error)
-	io.Closer
 }
 
 // Cleaner は、URL結果のクリーンアップと構造化を実行する責務を持つインターフェースです。

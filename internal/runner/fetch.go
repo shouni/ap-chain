@@ -37,8 +37,8 @@ func (r *FetchRunner) Run(ctx context.Context, sourceURL string) ([]ports.URLRes
 		return nil, err
 	}
 
-	urls := r.parseURLs(content)
-	if len(urls) == 0 {
+	urls, err := r.parseURLs(content)
+	if err != nil {
 		return nil, fmt.Errorf("ソースファイルからURLを抽出できませんでした")
 	}
 
@@ -87,9 +87,8 @@ func (r *FetchRunner) readContent(ctx context.Context, sourceURL string) (string
 }
 
 // parseURLs は content を行単位で分割し、空行やコメントを除外してURLリストを返します。
-func (r *FetchRunner) parseURLs(content string) []string {
+func (r *FetchRunner) parseURLs(content string) ([]string, error) {
 	var urls []string
-	// string 用の scanner を使う（strings.NewReader）
 	scanner := bufio.NewScanner(strings.NewReader(content))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -98,5 +97,8 @@ func (r *FetchRunner) parseURLs(content string) []string {
 		}
 		urls = append(urls, line)
 	}
-	return urls
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("URLのパース中にエラーが発生しました: %w", err)
+	}
+	return urls, nil
 }

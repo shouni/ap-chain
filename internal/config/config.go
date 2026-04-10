@@ -30,13 +30,12 @@ type Config struct {
 	ScraperTimeout     time.Duration
 	MaxScraperParallel int
 
-	MapModel    string
-	ReduceModel string
-	Concurrency int
-	LLMTimeout  time.Duration
-
 	ProjectID    string
 	GeminiAPIKey string
+	MapModel     string
+	ReduceModel  string
+	Concurrency  int
+	LLMTimeout   time.Duration
 }
 
 // Normalize は設定値の文字列フィールドから前後の空白を一括で削除します。

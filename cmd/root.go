@@ -40,8 +40,8 @@ func initAppPreRunE(cmd *cobra.Command, args []string) error {
 func addAppPersistentFlags(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().StringVarP(&opts.InputFile, "input", "i", "", "処理対象のURLリストファイル (必須)")
 	rootCmd.PersistentFlags().StringVarP(&opts.OutputFile, "output", "o", "./output/output.md", "出力ファイル (local or gs://)")
-	rootCmd.PersistentFlags().StringVar(&opts.MapModel, "map-model", "", "使用する Google Gemini モデル名 (例: gemini-2.5-flash, gemini-2.5-pro)")
-	rootCmd.PersistentFlags().StringVar(&opts.ReduceModel, "reduce-model", "", "使用する Google Gemini モデル名 (例: gemini-2.5-flash, gemini-2.5-pro)")
+	rootCmd.PersistentFlags().StringVar(&opts.MapModel, "map-model", "", "Map処理で使用する Google Gemini モデル名 (例: gemini-2.5-flash)")
+	rootCmd.PersistentFlags().StringVar(&opts.ReduceModel, "reduce-model", "", "Reduce処理で使用する Google Gemini モデル名 (例: gemini-2.5-pro)")
 
 	_ = rootCmd.MarkPersistentFlagRequired("input")
 }

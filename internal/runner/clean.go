@@ -98,17 +98,19 @@ func segmentText(ctx context.Context, text string, maxChars int) []string {
 	var segments []string
 
 	for len(text) > 0 {
-		// 残りが maxChars ルーン以下の場合はそのまま追加して終了
-		if utf8.RuneCountInString(text) <= maxChars {
-			segments = append(segments, text)
-			break
-		}
-
-		// maxChars ルーン目のバイトインデックスを特定
 		byteIdx := 0
-		for i := 0; i < maxChars; i++ {
+		runeCount := 0
+		// maxChars ルーン分のバイトインデックスを特定しつつ、終端判定を行う
+		for byteIdx < len(text) && runeCount < maxChars {
 			_, size := utf8.DecodeRuneInString(text[byteIdx:])
 			byteIdx += size
+			runeCount++
+		}
+
+		// 残りが maxChars ルーン以下の場合はそのまま追加して終了
+		if byteIdx == len(text) {
+			segments = append(segments, text)
+			break
 		}
 
 		candidate := text[:byteIdx]

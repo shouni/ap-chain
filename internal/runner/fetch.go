@@ -15,13 +15,18 @@ import (
 	"ap-chain/internal/domain"
 )
 
+// ContentReader は、指定されたURIからコンテンツを取得するためのインターフェースです。
+type ContentReader interface {
+	Open(ctx context.Context, uri string) (io.ReadCloser, error)
+}
+
 type FetchRunner struct {
-	reader  domain.ContentReader
+	reader  ContentReader
 	scraper ports.ScrapeRunner
 }
 
 // NewFetchRunner は FetchRunner の新しいインスタンスを作成します。
-func NewFetchRunner(reader domain.ContentReader, scraper ports.ScrapeRunner) *FetchRunner {
+func NewFetchRunner(reader ContentReader, scraper ports.ScrapeRunner) *FetchRunner {
 	return &FetchRunner{
 		reader:  reader,
 		scraper: scraper,

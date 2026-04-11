@@ -12,12 +12,11 @@ import (
 
 	"ap-chain/internal/adapters"
 	"ap-chain/internal/app"
-	"ap-chain/internal/domain"
 	"ap-chain/internal/runner"
 )
 
 // buildFetchRunner は、FetchRunner のインスタンスを返します。
-func buildFetchRunner(ctx context.Context, appCtx *app.Container) (domain.FetchRunner, error) {
+func buildFetchRunner(ctx context.Context, appCtx *app.Container) (*runner.FetchRunner, error) {
 	contentReader, err := reader.New(
 		reader.WithGCSFactory(func(ctx context.Context) (remoteio.ReadWriteFactory, error) {
 			return appCtx.RemoteIO.Factory, nil
@@ -42,7 +41,7 @@ func buildFetchRunner(ctx context.Context, appCtx *app.Container) (domain.FetchR
 }
 
 // buildCleanRunner は、CleanRunner のインスタンスを返します。
-func buildCleanRunner(ctx context.Context, appCtx *app.Container) (domain.CleanRunner, error) {
+func buildCleanRunner(ctx context.Context, appCtx *app.Container) (*runner.CleanRunner, error) {
 	ai, err := adapters.NewAIAdapter(ctx, appCtx.Config)
 	if err != nil {
 		return nil, fmt.Errorf("AIAdapterの初期化に失敗しました: %w", err)
@@ -65,7 +64,7 @@ func buildCleanRunner(ctx context.Context, appCtx *app.Container) (domain.CleanR
 }
 
 // buildPublishRunner は、PublishRunner のインスタンスを返します。
-func buildPublishRunner(ctx context.Context, appCtx *app.Container) (domain.PublishRunner, error) {
+func buildPublishRunner(ctx context.Context, appCtx *app.Container) (*runner.PublishRunner, error) {
 	b, err := mdBuilder.New(
 		mdBuilder.WithEnableUnsafeHTML(false),
 	)

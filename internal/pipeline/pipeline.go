@@ -35,6 +35,10 @@ func NewPipeline(
 
 // Execute は、パイプラインの各ステップ（取得、クリーンアップ、公開）を順次実行し、結果を通知します。
 func (p *Pipeline) Execute(ctx context.Context, req domain.Request) (err error) {
+	if req.InputURI == "" || req.OutputURI == "" {
+		return fmt.Errorf("InputURI および OutputURI は必須です")
+	}
+
 	var urlResults []domain.URLResult
 
 	// 1. エラー発生時の遅延通知

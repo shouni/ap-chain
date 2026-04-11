@@ -1,6 +1,6 @@
 package domain
 
-// Request は Web 層で受け取り、Cloud Tasks でワーカーに渡す入力モデルです。
+// Request はパイプライン実行に必要な入力パラメータを保持するモデルです。
 type Request struct {
 	InputURI  string `json:"input_uri"`
 	OutputURI string `json:"output_uri"`

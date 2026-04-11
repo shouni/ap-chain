@@ -39,33 +39,26 @@ func NewPipeline(
 	}
 }
 
-// Execute は、すべての依存関係を構築し実行します。
 func (p *Pipeline) Execute(ctx context.Context) (err error) {
 	var urlResults []ports.URLResult
 
-	// defer による一括エラー通知
+	// 1. エラー発生時の遅延通知
 	defer func() {
-		if err != nil && p.notifier != nil {
-			// 通知用にキャンセルされていない新しいコンテキストを作成
-			notifyCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
-			defer cancel()
-			if notifyErr := p.notifier.NotifyFailure(notifyCtx, err); notifyErr != nil {
-				// 通知自体の失敗はログに記録し、メインの err は維持する
-				slog.Error("failed to send failure notification", "error", notifyErr)
-			}
+		if err != nil {
+			p.sendNotify(ctx, func(nCtx context.Context) error {
+				return p.notifier.NotifyFailure(nCtx, err)
+			}, "failure")
 		}
 	}()
 
-	// 1. Fetch
-	urlResults, err = p.fetch(ctx)
-	if err != nil {
-		return err // defer 内の err にキャプチャされる
+	// 2. Fetch
+	if urlResults, err = p.fetch(ctx); err != nil {
+		return err
 	}
 
-	// 2. Clean (MapReduce)
+	// 3. Clean (MapReduce)
 	var content string
-	content, err = p.clean(ctx, urlResults) // := ではなく = を使用してシャドウイングを防止
-	if err != nil {
+	if content, err = p.clean(ctx, urlResults); err != nil {
 		return err
 	}
 
@@ -74,21 +67,33 @@ func (p *Pipeline) Execute(ctx context.Context) (err error) {
 		return err
 	}
 
-	// 3. Publish
+	// 4. Publish
 	var result *domain.PublishResult
-	result, err = p.publisher.Run(ctx, p.cfg.OutputFile, content)
-	if err != nil {
+	if result, err = p.publisher.Run(ctx, p.cfg.OutputFile, content); err != nil {
 		return err
 	}
 
-	// 4. Success Notification
-	if p.notifier != nil {
-		if notifyErr := p.notifier.NotifySuccess(ctx, result.HTML.StorageURI, result.HTML.PublicURL, len(urlResults)); notifyErr != nil {
-			slog.Error("failed to send success notification", "error", notifyErr)
-		}
-	}
+	// 5. Success Notification (ここも確実に行う)
+	p.sendNotify(ctx, func(nCtx context.Context) error {
+		return p.notifier.NotifySuccess(nCtx, result.HTML.StorageURI, result.HTML.PublicURL, len(urlResults))
+	}, "success")
 
 	return nil
+}
+
+// sendNotify は、親コンテキストの状態に関わらず通知を試行する共通ヘルパーです。
+func (p *Pipeline) sendNotify(ctx context.Context, notifyFn func(context.Context) error, label string) {
+	if p.notifier == nil {
+		return
+	}
+
+	// 親がキャンセルされていても10秒間は通知のために粘る
+	nCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+
+	if err := notifyFn(nCtx); err != nil {
+		slog.Error("failed to send notification", "type", label, "error", err)
+	}
 }
 
 // fetch は、コンテンツ取得を実行します。

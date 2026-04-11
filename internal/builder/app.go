@@ -1,7 +1,6 @@
 package builder
 
 import (
-	"ap-chain/internal/adapters"
 	"context"
 	"fmt"
 	"io"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/shouni/go-http-kit/httpkit"
 
+	"ap-chain/internal/adapters"
 	"ap-chain/internal/app"
 	"ap-chain/internal/config"
 )

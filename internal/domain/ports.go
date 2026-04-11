@@ -8,7 +8,7 @@ import (
 // Pipeline は、処理を行うインターフェースです。
 type Pipeline interface {
 	// Execute は、すべての依存関係を構築し実行します。
-	Execute(ctx context.Context) error
+	Execute(ctx context.Context, req Request) error
 }
 
 // FetchRunner は、指定されたソースからURLリストを取得し、スクレイピング処理を実行者に委譲します。

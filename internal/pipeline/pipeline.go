@@ -7,13 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"ap-chain/internal/config"
 	"ap-chain/internal/domain"
 )
 
 // Pipeline はパイプラインの実行に必要な外部依存関係を保持するサービス構造体です。
 type Pipeline struct {
-	cfg       *config.Config
 	fetcher   domain.FetchRunner
 	cleaner   domain.CleanRunner
 	publisher domain.PublishRunner
@@ -22,14 +20,12 @@ type Pipeline struct {
 
 // NewPipeline は、Pipeline を生成します。
 func NewPipeline(
-	cfg *config.Config,
 	fetcher domain.FetchRunner,
 	cleaner domain.CleanRunner,
 	publisher domain.PublishRunner,
 	notifier domain.Notifier,
 ) *Pipeline {
 	return &Pipeline{
-		cfg:       cfg,
 		fetcher:   fetcher,
 		cleaner:   cleaner,
 		publisher: publisher,
@@ -38,7 +34,11 @@ func NewPipeline(
 }
 
 // Execute は、パイプラインの各ステップ（取得、クリーンアップ、公開）を順次実行し、結果を通知します。
-func (p *Pipeline) Execute(ctx context.Context) (err error) {
+func (p *Pipeline) Execute(ctx context.Context, req domain.Request) (err error) {
+	if req.InputURI == "" || req.OutputURI == "" {
+		return fmt.Errorf("InputURI および OutputURI は必須です")
+	}
+
 	var urlResults []domain.URLResult
 
 	// 1. エラー発生時の遅延通知
@@ -51,7 +51,7 @@ func (p *Pipeline) Execute(ctx context.Context) (err error) {
 	}()
 
 	// 2. Fetch
-	if urlResults, err = p.fetch(ctx); err != nil {
+	if urlResults, err = p.fetch(ctx, req.InputURI); err != nil {
 		return err
 	}
 
@@ -68,7 +68,7 @@ func (p *Pipeline) Execute(ctx context.Context) (err error) {
 
 	// 4. Publish
 	var result *domain.PublishResult
-	if result, err = p.publisher.Run(ctx, p.cfg.OutputFile, content); err != nil {
+	if result, err = p.publisher.Run(ctx, req.OutputURI, content); err != nil {
 		return err
 	}
 
@@ -96,8 +96,8 @@ func (p *Pipeline) sendNotify(ctx context.Context, notifyFn func(context.Context
 }
 
 // fetch は、コンテンツ取得を実行します。
-func (p *Pipeline) fetch(ctx context.Context) ([]domain.URLResult, error) {
-	results, err := p.fetcher.Run(ctx, p.cfg.InputFile)
+func (p *Pipeline) fetch(ctx context.Context, sourceURI string) ([]domain.URLResult, error) {
+	results, err := p.fetcher.Run(ctx, sourceURI)
 	if err != nil {
 		return nil, fmt.Errorf("スクリプトテキスト作成に失敗しました: %w", err)
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"ap-chain/internal/builder"
+	"ap-chain/internal/domain"
 )
 
 // generateCmd は、メインのCLIコマンド定義です。
@@ -33,7 +34,11 @@ func generateCommand(cmd *cobra.Command, args []string) error {
 		}
 	}()
 
-	err = appCtx.Pipeline.Execute(ctx)
+	req := domain.Request{
+		InputURI:  opts.InputFile,
+		OutputURI: opts.OutputFile,
+	}
+	err = appCtx.Pipeline.Execute(ctx, req)
 	if err != nil {
 		return err
 	}

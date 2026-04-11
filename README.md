@@ -75,6 +75,64 @@ export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
 
 ---
 
+## 🔄 シーケンスフロー (Sequence Flow)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User
+    participant CLI as Cobra CLI
+    participant Builder as builder.BuildContainer
+    participant Pipeline as Pipeline
+    participant Fetch as FetchRunner
+    participant Source as Input File / GCS
+    participant Scraper as Web Scraper
+    participant Clean as CleanRunner
+    participant LLM as LLM Executor
+    participant Publish as PublishRunner
+    participant Storage as Local / GCS
+    participant Slack as Slack Notifier
+
+    User->>CLI: ap-chain generate -i urls.txt -o output.md
+    CLI->>Builder: BuildContainer(ctx, config)
+    Builder-->>CLI: app.Container
+    CLI->>Pipeline: Execute(ctx)
+
+    Pipeline->>Fetch: Run(ctx, input)
+    Fetch->>Source: Open(input source)
+    Source-->>Fetch: URL list content
+    Fetch->>Fetch: Parse and validate URLs
+    Fetch->>Scraper: Run(ctx, urls)
+    Scraper-->>Fetch: scraped contents
+    Fetch-->>Pipeline: []URLResult
+
+    Pipeline->>Clean: Run(ctx, urlResults)
+    Clean->>Clean: Segment content per URL
+    Clean->>LLM: ExecuteMap(model, segments)
+    LLM-->>Clean: intermediate summaries
+    Clean->>LLM: ExecuteReduce(model, combined summaries)
+    LLM-->>Clean: final markdown
+    Clean-->>Pipeline: structured content
+
+    Pipeline->>Publish: Run(ctx, output, markdown)
+    Publish->>Storage: Write markdown
+    Publish->>Publish: Convert Markdown to HTML
+    Publish->>Storage: Write HTML
+    Publish->>Storage: Generate signed URLs
+    Storage-->>Publish: markdown/html URLs
+    Publish-->>Pipeline: PublishResult
+
+    Pipeline->>Slack: NotifySuccess(html URI, signed URL, count)
+    Slack-->>Pipeline: notification result
+
+    alt any step fails
+        Pipeline->>Slack: NotifyFailure(error)
+        Slack-->>Pipeline: notification result
+    end
+```
+
+---
+
 ## 📜 ライセンス (License)
 
 このプロジェクトは [MIT License](https://opensource.org/licenses/MIT) の下で公開されています。

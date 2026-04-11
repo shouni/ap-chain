@@ -29,28 +29,27 @@ func NewLLMConcurrentExecutor(ai gemini.ContentGenerator, pb domain.PromptBuilde
 	}, nil
 }
 
-// ExecuteMap は errgroup と rate.Limiter を使用して Mapフェーズを実行します。
+// ExecuteMap は errgroup と rate.Limiter を使用して、安全かつ効率的に並列実行を行います。
 func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error) {
 	total := len(allSegments)
 	summaries := make([]string, total)
 
 	eg, ctx := errgroup.WithContext(ctx)
 	eg.SetLimit(e.concurrency)
-
-	// RPM制限のためのリミッター
 	limiter := rate.NewLimiter(rate.Every(defaultLLMRateLimit), 1)
 
 	slog.InfoContext(ctx, "セグメントの並列処理を開始します",
 		slog.Int("total_segments", total),
 		slog.Int("max_parallel", e.concurrency))
 
+	var waitErr error
+Loop:
 	for i, seg := range allSegments {
-		// 1. レートリミット待機（メインループで待機し、Goroutineのスパイクを防ぐ）
 		if err := limiter.Wait(ctx); err != nil {
-			return nil, err
+			waitErr = err
+			break Loop
 		}
 
-		// 2. errgroup.Go を使用して Goroutine を起動
 		eg.Go(func() error {
 			prompt, err := e.promptBuilder.GenerateMap(seg.Text, seg.URL)
 			if err != nil {
@@ -72,15 +71,20 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 		})
 	}
 
-	// すべての完了を待ち、最初のエラーがあればそれを返す
+	// eg.Wait() は、いずれかの Goroutine がエラーを返した場合、そのエラーを返す。
 	if err := eg.Wait(); err != nil {
 		return nil, err
+	}
+
+	// ループ中断時のエラー（コンテキストキャンセル等）があればここで返す
+	if waitErr != nil {
+		return nil, waitErr
 	}
 
 	return summaries, nil
 }
 
-// ExecuteReduce は構造に変化がないため、ロジックのみ維持します。
+// ExecuteReduce は現状のロジックを維持
 func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, model, combinedText string) (string, error) {
 	slog.InfoContext(ctx, "最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", model))
 

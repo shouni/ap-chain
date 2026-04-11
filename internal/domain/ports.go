@@ -40,5 +40,6 @@ type Cleaner interface {
 
 // PromptBuilder は、プロンプト文字列を生成する責務を定義します。
 type PromptBuilder interface {
-	Build(mode string, data any) (string, error)
+	GenerateMap(text, url string) (string, error)
+	GenerateReduce(text string) (string, error)
 }

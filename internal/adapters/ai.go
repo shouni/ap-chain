@@ -19,7 +19,7 @@ const (
 )
 
 // NewAIAdapter は aiClientを初期化します。
-func NewAIAdapter(ctx context.Context, cfg *config.Config) (gemini.Generator, error) {
+func NewAIAdapter(ctx context.Context, cfg *config.Config) (*gemini.Client, error) {
 	clientConfig := gemini.Config{
 		InitialDelay: defaultInitialDelay,
 	}

@@ -82,24 +82,24 @@ sequenceDiagram
     autonumber
     actor User as User
     participant CLI as Cobra CLI
-    participant Builder as builder.BuildContainer
-    participant Pipeline as Pipeline
-    participant Collector as Collector
+    participant AppBuilder as builder.BuildContainer
+    participant Pipeline as pipeline.Pipeline
+    participant Collector as runner.CollectRunner
     participant Source as Input File / GCS
-    participant Scraper as Web Scraper
-    participant Composer as Composer
-    participant LLM as LLM Executor
-    participant Publisher as Publisher
-    participant Storage as Local / GCS
-    participant Slack as Slack Notifier
+    participant Scraper as go-web-exact ScrapeRunner
+    participant Composer as runner.ComposeRunner
+    participant LLM as adapters.ComposerAdapter
+    participant Publisher as runner.PublishRunner
+    participant Storage as go-remote-io Writer/Signer
+    participant Slack as adapters.SlackAdapter
 
     User->>CLI: ap-chain generate -i urls.txt -o output.md
-    CLI->>Builder: BuildContainer(ctx, config)
-    Builder-->>CLI: app.Container
-    CLI->>Pipeline: Execute(ctx)
+    CLI->>AppBuilder: BuildContainer(ctx, config)
+    AppBuilder-->>CLI: app.Container
+    CLI->>Pipeline: Execute(ctx, req)
 
-    Pipeline->>Collector: Run(ctx, input)
-    Collector->>Source: Open(input source)
+    Pipeline->>Collector: Run(ctx, inputURI)
+    Collector->>Source: Open(inputURI)
     Source-->>Collector: URL list content
     Collector->>Collector: Parse and validate URLs
     Collector->>Scraper: Run(ctx, urls)
@@ -108,21 +108,21 @@ sequenceDiagram
 
     Pipeline->>Composer: Run(ctx, urlResults)
     Composer->>Composer: Segment content per URL
-    Composer->>LLM: ExecuteMap(model, segments)
+    Composer->>LLM: RunMap(model, segments)
     LLM-->>Composer: intermediate summaries
-    Composer->>LLM: ExecuteReduce(model, combined summaries)
+    Composer->>LLM: RunReduce(model, combined summaries)
     LLM-->>Composer: final markdown
     Composer-->>Pipeline: structured content
 
-    Pipeline->>Publisher: Run(ctx, output, markdown)
+    Pipeline->>Publisher: Run(ctx, outputURI, markdown)
     Publisher->>Storage: Write markdown
     Publisher->>Publisher: Convert Markdown to HTML
     Publisher->>Storage: Write HTML
-    Publisher->>Storage: Generate signed URLs
+    Publisher->>Storage: GenerateSignedURL(markdown/html)
     Storage-->>Publisher: markdown/html URLs
     Publisher-->>Pipeline: PublishResult
 
-    Pipeline->>Slack: NotifySuccess(html URI, signed URL, count)
+    Pipeline->>Slack: NotifySuccess(outputURI, publicURL, sourceCount)
     Slack-->>Pipeline: notification result
 
     alt any step fails

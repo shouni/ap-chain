@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/shouni/go-web-exact/v2/ports"
 
@@ -45,7 +46,10 @@ func (p *Pipeline) Execute(ctx context.Context) (err error) {
 	// defer による一括エラー通知
 	defer func() {
 		if err != nil && p.notifier != nil {
-			if notifyErr := p.notifier.NotifyFailure(ctx, err); notifyErr != nil {
+			// 通知用にキャンセルされていない新しいコンテキストを作成
+			notifyCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+			defer cancel()
+			if notifyErr := p.notifier.NotifyFailure(notifyCtx, err); notifyErr != nil {
 				// 通知自体の失敗はログに記録し、メインの err は維持する
 				slog.Error("failed to send failure notification", "error", notifyErr)
 			}

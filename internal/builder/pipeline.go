@@ -9,22 +9,25 @@ import (
 	"ap-chain/internal/pipeline"
 )
 
-// buildPipeline は、提供されたランナーを使用して新しいパイプラインを初期化して返します。
+// buildPipeline は、各コンポーネントを構築し、新しいパイプラインを初期化して返します。
 func buildPipeline(ctx context.Context, appCtx *app.Container) (domain.Pipeline, error) {
-	fetchRunner, err := buildFetchRunner(ctx, appCtx)
+	collector, err := buildCollector(ctx, appCtx)
 	if err != nil {
-		return nil, fmt.Errorf("生成ランナーの初期化に失敗しました: %w", err)
-	}
-	cleanRunner, err := buildCleanRunner(ctx, appCtx)
-	if err != nil {
-		return nil, fmt.Errorf("LLMランナーの初期化に失敗しました: %w", err)
-	}
-	publisherRunner, err := buildPublishRunner(ctx, appCtx)
-	if err != nil {
-		return nil, fmt.Errorf("パブリッシャーランナーの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("Collectorの初期化に失敗しました: %w", err)
 	}
 
-	p := pipeline.New(fetchRunner, cleanRunner, publisherRunner, appCtx.Notifier)
+	composer, err := buildComposer(ctx, appCtx)
+	if err != nil {
+		return nil, fmt.Errorf("Composerの初期化に失敗しました: %w", err)
+	}
+
+	publisher, err := buildPublisher(ctx, appCtx)
+	if err != nil {
+		return nil, fmt.Errorf("Publisherの初期化に失敗しました: %w", err)
+	}
+
+	// pipeline.New に新しい命名のインスタンスを注入
+	p := pipeline.New(collector, composer, publisher, appCtx.Notifier)
 
 	return p, nil
 }

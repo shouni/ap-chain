@@ -15,8 +15,8 @@ import (
 	"ap-chain/internal/runner"
 )
 
-// buildFetchRunner は、FetchRunner のインスタンスを返します。
-func buildFetchRunner(ctx context.Context, appCtx *app.Container) (*runner.FetchRunner, error) {
+// buildCollector は、CollectRunner のインスタンスを構築して返します。
+func buildCollector(ctx context.Context, appCtx *app.Container) (*runner.CollectRunner, error) {
 	contentReader, err := reader.New(
 		reader.WithGCSFactory(func(ctx context.Context) (remoteio.ReadWriteFactory, error) {
 			return appCtx.RemoteIO.Factory, nil
@@ -31,17 +31,17 @@ func buildFetchRunner(ctx context.Context, appCtx *app.Container) (*runner.Fetch
 	}
 	sb, err := scraperBuilder.New(appCtx.HTTPClient, opts)
 	if err != nil {
-		return nil, fmt.Errorf("ScrapeRunnerの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("Scraperの初期化に失敗しました: %w", err)
 	}
 
-	return runner.NewFetchRunner(
+	return runner.NewCollectRunner(
 		contentReader,
 		sb.ScrapeRunner(),
 	), nil
 }
 
-// buildCleanRunner は、CleanRunner のインスタンスを返します。
-func buildCleanRunner(ctx context.Context, appCtx *app.Container) (*runner.CleanRunner, error) {
+// buildComposer は、Composer のインスタンスを構築して返します。
+func buildComposer(ctx context.Context, appCtx *app.Container) (*runner.ComposeRunner, error) {
 	ai, err := adapters.NewAIAdapter(ctx, appCtx.Config)
 	if err != nil {
 		return nil, fmt.Errorf("AIAdapterの初期化に失敗しました: %w", err)
@@ -50,33 +50,33 @@ func buildCleanRunner(ctx context.Context, appCtx *app.Container) (*runner.Clean
 	if err != nil {
 		return nil, fmt.Errorf("PromptAdapterの初期化に失敗しました: %w", err)
 	}
-	executor, err := adapters.NewExecutor(ai, promptBuilder, appCtx.Config.Concurrency)
+	executor, err := adapters.NewComposer(ai, promptBuilder, appCtx.Config.Concurrency)
 	if err != nil {
-		return nil, fmt.Errorf("cleanerの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("Executorの初期化に失敗しました: %w", err)
 	}
 
-	cleanRunner, err := runner.NewCleanRunner(appCtx.Config, executor)
+	composer, err := runner.NewComposeRunner(appCtx.Config, executor)
 	if err != nil {
-		return nil, fmt.Errorf("cleanerの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("Composerの初期化に失敗しました: %w", err)
 	}
 
-	return cleanRunner, nil
+	return composer, nil
 }
 
-// buildPublishRunner は、PublishRunner のインスタンスを返します。
-func buildPublishRunner(ctx context.Context, appCtx *app.Container) (*runner.PublishRunner, error) {
+// buildPublisher は、Publisher のインスタンスを構築して返します。
+func buildPublisher(ctx context.Context, appCtx *app.Container) (*runner.PublishRunner, error) {
 	b, err := mdBuilder.New(
 		mdBuilder.WithEnableUnsafeHTML(false),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("markdown Builderの初期化に失敗: %w", err)
+		return nil, fmt.Errorf("Markdown Builderの初期化に失敗: %w", err)
 	}
 	md, err := b.BuildRunner()
 	if err != nil {
 		return nil, fmt.Errorf("MarkdownToHtmlRunnerの構築に失敗: %w", err)
 	}
 
-	return runner.NewPublisherRunner(
+	return runner.NewPublishRunner(
 		appCtx.RemoteIO.Writer,
 		appCtx.RemoteIO.Signer,
 		md,

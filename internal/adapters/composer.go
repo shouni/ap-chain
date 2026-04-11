@@ -21,32 +21,32 @@ type PromptBuilder interface {
 	GenerateReduce(text string) (string, error)
 }
 
-type Executor struct {
+type Composer struct {
 	aiClient      gemini.ContentGenerator
 	promptBuilder PromptBuilder
 	concurrency   int
 }
 
-func NewExecutor(ai gemini.ContentGenerator, pb PromptBuilder, concurrency int) (*Executor, error) {
-	return &Executor{
+func NewComposer(ai gemini.ContentGenerator, pb PromptBuilder, concurrency int) (*Composer, error) {
+	return &Composer{
 		aiClient:      ai,
 		promptBuilder: pb,
 		concurrency:   concurrency,
 	}, nil
 }
 
-// ExecuteMap は errgroup と rate.Limiter を使用して、安全かつ効率的に並列実行を行います。
-func (e *Executor) ExecuteMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error) {
+// RunMap は errgroup と rate.Limiter を使用して、安全かつ効率的に並列実行を行います。
+func (c *Composer) RunMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error) {
 	total := len(allSegments)
 	summaries := make([]string, total)
 
 	eg, ctx := errgroup.WithContext(ctx)
-	eg.SetLimit(e.concurrency)
+	eg.SetLimit(c.concurrency)
 	limiter := rate.NewLimiter(rate.Every(defaultLLMRateLimit), 1)
 
 	slog.InfoContext(ctx, "セグメントの並列処理を開始します",
 		slog.Int("total_segments", total),
-		slog.Int("max_parallel", e.concurrency))
+		slog.Int("max_parallel", c.concurrency))
 
 	var waitErr error
 Loop:
@@ -57,12 +57,12 @@ Loop:
 		}
 
 		eg.Go(func() error {
-			prompt, err := e.promptBuilder.GenerateMap(seg.Text, seg.URL)
+			prompt, err := c.promptBuilder.GenerateMap(seg.Text, seg.URL)
 			if err != nil {
 				return fmt.Errorf("セグメント %d 処理失敗: %w", i+1, err)
 			}
 
-			response, err := e.aiClient.GenerateContent(ctx, model, prompt)
+			response, err := c.aiClient.GenerateContent(ctx, model, prompt)
 			if err != nil {
 				return fmt.Errorf("セグメント %d (URL: %s) 処理失敗: %w", i+1, seg.URL, err)
 			}
@@ -90,16 +90,16 @@ Loop:
 	return summaries, nil
 }
 
-// ExecuteReduce は現状のロジックを維持
-func (e *Executor) ExecuteReduce(ctx context.Context, model, combinedText string) (string, error) {
+// RunReduce は現状のロジックを維持
+func (c *Composer) RunReduce(ctx context.Context, model, combinedText string) (string, error) {
 	slog.InfoContext(ctx, "最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", model))
 
-	prompt, err := e.promptBuilder.GenerateReduce(combinedText)
+	prompt, err := c.promptBuilder.GenerateReduce(combinedText)
 	if err != nil {
 		return "", fmt.Errorf("最終 Reduce プロンプトの生成に失敗しました: %w", err)
 	}
 
-	response, err := e.aiClient.GenerateContent(ctx, model, prompt)
+	response, err := c.aiClient.GenerateContent(ctx, model, prompt)
 	if err != nil {
 		return "", fmt.Errorf("LLM最終構造化処理（Reduceフェーズ）に失敗しました: %w", err)
 	}

@@ -25,8 +25,8 @@ type PublishRunner struct {
 	md     mdRunner
 }
 
-// NewPublisherRunner は PublishRunner の新しいインスタンスを作成します。
-func NewPublisherRunner(writer remoteio.Writer, signer remoteio.URLSigner, md mdRunner) *PublishRunner {
+// NewPublishRunner は PublishRunner の新しいインスタンスを作成します。
+func NewPublishRunner(writer remoteio.Writer, signer remoteio.URLSigner, md mdRunner) *PublishRunner {
 	return &PublishRunner{
 		writer: writer,
 		signer: signer,

@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"ap-chain/internal/config"
 	"bytes"
 	"context"
 	"fmt"
@@ -92,5 +93,5 @@ func (r *PublishRunner) generateSignedResultURL(ctx context.Context, storageURI 
 		return storageURI, nil
 	}
 	// 有効なGETリクエスト用URLを生成
-	return r.signer.GenerateSignedURL(ctx, storageURI, "GET", defaultSignedURLExpiration)
+	return r.signer.GenerateSignedURL(ctx, storageURI, "GET", config.DefaultSignedURLExpiration)
 }

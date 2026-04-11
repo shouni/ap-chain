@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	DefaultHTTPTimeout    = 60 * time.Second
-	MinInputContentLength = 10
-	MaxInputSize          = 10 * 1024 * 1024
+	DefaultHTTPTimeout         = 60 * time.Second
+	MinInputContentLength      = 10
+	MaxInputSize               = 10 * 1024 * 1024
+	DefaultSignedURLExpiration = 10 * time.Minute
 	// scraper
 	defaultLScraperTimeout = 15 * time.Second
 	defaultParallel        = 5

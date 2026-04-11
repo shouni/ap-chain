@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/shouni/go-gemini-client/gemini"
+	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
 	"ap-chain/internal/domain"
@@ -29,93 +29,58 @@ func NewLLMConcurrentExecutor(ai gemini.ContentGenerator, pb domain.PromptBuilde
 	}, nil
 }
 
-// ExecuteMap は Mapフェーズの並列処理を効率的に実行します。
+// ExecuteMap は errgroup と rate.Limiter を使用して Mapフェーズを実行します。
 func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error) {
 	total := len(allSegments)
 	summaries := make([]string, total)
-	errChan := make(chan error, 1)
 
-	// エラー時に他の処理を即座に停止するためのコンテキスト
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.SetLimit(e.concurrency)
 
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, e.concurrency)
+	// RPM制限のためのリミッター
 	limiter := rate.NewLimiter(rate.Every(defaultLLMRateLimit), e.concurrency)
 
 	slog.InfoContext(ctx, "セグメントの並列処理を開始します",
 		slog.Int("total_segments", total),
 		slog.Int("max_parallel", e.concurrency))
 
-Loop:
 	for i, seg := range allSegments {
-		// 1. 事前のエラーチェック
-		// return ではなく break することで、下部の wg.Wait() を必ず通過させ、リークを防ぐ
-		if ctx.Err() != nil {
-			break Loop
-		}
-
-		// 2. APIのレート制限（RPM等）を考慮し、Goroutineの起動ペース自体を制御する
+		// 1. レートリミット待機（メインループで待機し、Goroutineのスパイクを防ぐ）
 		if err := limiter.Wait(ctx); err != nil {
-			e.sendError(errChan, err)
-			cancel()
-			break Loop
+			return nil, err
 		}
 
-		// 3. セマフォを取得
-		select {
-		case sem <- struct{}{}:
-		case <-ctx.Done():
-			e.sendError(errChan, ctx.Err())
-			cancel()
-			break Loop
-		}
-
-		wg.Add(1)
-		go func(index int, s domain.Segment) {
-			defer func() { <-sem }()
-			defer wg.Done()
-
-			prompt, err := e.promptBuilder.GenerateMap(s.Text, s.URL)
+		// 2. errgroup.Go を使用して Goroutine を起動
+		eg.Go(func() error {
+			prompt, err := e.promptBuilder.GenerateMap(seg.Text, seg.URL)
 			if err != nil {
-				e.sendError(errChan, fmt.Errorf("セグメント %d 処理失敗: %w", index+1, err))
-				cancel()
-				return
+				return fmt.Errorf("セグメント %d 処理失敗: %w", i+1, err)
 			}
 
 			response, err := e.aiClient.GenerateContent(ctx, model, prompt)
 			if err != nil {
-				e.sendError(errChan, fmt.Errorf("セグメント %d (URL: %s) 処理失敗: %w", index+1, s.URL, err))
-				cancel()
-				return
+				return fmt.Errorf("セグメント %d (URL: %s) 処理失敗: %w", i+1, seg.URL, err)
 			}
 
-			summaries[index] = response.Text
+			summaries[i] = response.Text
 
 			slog.InfoContext(ctx, "セグメント処理成功",
-				slog.Int("index", index+1),
-				slog.String("url", s.URL))
-		}(i, seg)
+				slog.Int("index", i+1),
+				slog.String("url", seg.URL))
+
+			return nil
+		})
 	}
 
-	// すべての起動済み Goroutine が完了（またはキャンセル検知で終了）するのを待機
-	wg.Wait()
-
-	// 4. 最終的なエラー評価
-	select {
-	case err := <-errChan:
+	// すべての完了を待ち、最初のエラーがあればそれを返す
+	if err := eg.Wait(); err != nil {
 		return nil, err
-	default:
-		// errChan が空でもコンテキストがキャンセルされていればそのエラーを返す
-		if ctx.Err() != nil {
-			return nil, ctx.Err()
-		}
 	}
 
 	return summaries, nil
 }
 
-// ExecuteReduce は ReduceフェーズのAPI呼び出しを実行します。
+// ExecuteReduce は構造に変化がないため、ロジックのみ維持します。
 func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, model, combinedText string) (string, error) {
 	slog.InfoContext(ctx, "最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", model))
 
@@ -132,12 +97,4 @@ func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, model, combin
 	slog.InfoContext(ctx, "Reduce処理成功", slog.String("model", model))
 
 	return response.Text, nil
-}
-
-// sendError は、エラーをチャネルに送信します。チャネルが満杯の場合、エラーは無視されます。
-func (e *LLMConcurrentExecutor) sendError(ch chan error, err error) {
-	select {
-	case ch <- err:
-	default:
-	}
 }

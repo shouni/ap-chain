@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"ap-chain/internal/config"
 	"bytes"
 	"context"
 	"fmt"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/shouni/go-remote-io/remoteio"
 
+	"ap-chain/internal/config"
 	"ap-chain/internal/domain"
 )
 

@@ -27,17 +27,16 @@ type LLMModels struct {
 	reduceModel string
 }
 
-// LLMConcurrentExecutor は LLMExecutor の具体的な実装で、
-// Goroutine、セマフォ、レートリミッターを使用して並列実行を行います。
+// LLMConcurrentExecutor は LLMExecutor の具体的な実装で、Goroutine、セマフォ、レートリミッターを使用して並列実行を行います。
 type LLMConcurrentExecutor struct {
-	aiClient      gemini.Generator
+	aiClient      gemini.ContentGenerator
 	promptBuilder domain.PromptBuilder
 	models        LLMModels
 	concurrency   int
 }
 
 // NewLLMConcurrentExecutor は新しい LLMConcurrentExecutor インスタンスを作成します。
-func NewLLMConcurrentExecutor(cfg *config.Config, ai gemini.Generator, pb domain.PromptBuilder) (*LLMConcurrentExecutor, error) {
+func NewLLMConcurrentExecutor(cfg *config.Config, ai gemini.ContentGenerator, pb domain.PromptBuilder) (*LLMConcurrentExecutor, error) {
 	models := LLMModels{
 		mapModel:    cfg.MapModel,
 		reduceModel: cfg.ReduceModel,
@@ -98,11 +97,7 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, allSegments []Se
 				return
 			}
 
-			mapData := domain.MapTemplateData{
-				SegmentText: s.Text,
-				SourceURL:   s.URL,
-			}
-			prompt, err := e.promptBuilder.Build("map", mapData)
+			prompt, err := e.promptBuilder.GenerateMap(s.Text, s.URL)
 			if err != nil {
 				select {
 				case errChan <- fmt.Errorf("セグメント %d 処理失敗: %w", index+1, err):
@@ -143,16 +138,12 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, allSegments []Se
 func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, combinedText string) (string, error) {
 	slog.Info("最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", e.models.reduceModel))
 
-	reduceData := domain.ReduceTemplateData{
-		CombinedText: combinedText,
-	}
-
-	finalPrompt, err := e.promptBuilder.Build("reduce", reduceData)
+	prompt, err := e.promptBuilder.GenerateReduce(combinedText)
 	if err != nil {
 		return "", fmt.Errorf("最終 Reduce プロンプトの生成に失敗しました: %w", err)
 	}
 
-	finalResponse, err := e.aiClient.GenerateContent(ctx, e.models.reduceModel, finalPrompt)
+	finalResponse, err := e.aiClient.GenerateContent(ctx, e.models.reduceModel, prompt)
 	if err != nil {
 		return "", fmt.Errorf("LLM最終構造化処理（Reduceフェーズ）に失敗しました: %w", err)
 	}

@@ -52,17 +52,22 @@ func buildCleanRunner(ctx context.Context, appCtx *app.Container) (domain.CleanR
 	if err != nil {
 		return nil, fmt.Errorf("PromptAdapterの初期化に失敗しました: %w", err)
 	}
-	executor, err := cleaner.NewLLMConcurrentExecutor(appCtx.Config, ai, promptBuilder)
+	executor, err := cleaner.NewLLMConcurrentExecutor(ai, promptBuilder, appCtx.Config.Concurrency)
 	if err != nil {
 		return nil, fmt.Errorf("cleanerの初期化に失敗しました: %w", err)
 	}
-	cleanerRunner, err := cleaner.NewCleaner(promptBuilder, executor)
+
+	models := cleaner.LLMModels{
+		Map:    appCtx.Config.MapModel,
+		Reduce: appCtx.Config.ReduceModel,
+	}
+	llmCleaner, err := cleaner.NewCleaner(executor, models)
 	if err != nil {
 		return nil, fmt.Errorf("cleanerの初期化に失敗しました: %w", err)
 	}
 
 	return runner.NewCleanRunner(
-		cleanerRunner,
+		llmCleaner,
 	), nil
 }
 

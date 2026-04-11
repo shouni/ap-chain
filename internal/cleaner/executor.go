@@ -9,44 +9,25 @@ import (
 
 	"github.com/shouni/go-gemini-client/gemini"
 
-	"ap-chain/internal/config"
 	"ap-chain/internal/domain"
 )
 
-// DefaultSeparator は、一般的な段落区切りに使用される標準的な区切り文字です。
-const DefaultSeparator = "\n\n"
-
-// MaxSegmentChars は、MapフェーズでLLMに一度に渡す安全な最大文字数。
-const MaxSegmentChars = 20000
-
-// DefaultLLMRateLimit は、2sごとに1リクエストを許可するレートリミットです。
-const DefaultLLMRateLimit = 20 * time.Second
-
-type LLMModels struct {
-	mapModel    string
-	reduceModel string
-}
+// defaultLLMRateLimit は、2sごとに1リクエストを許可するレートリミットです。
+const defaultLLMRateLimit = 20 * time.Second
 
 // LLMConcurrentExecutor は LLMExecutor の具体的な実装で、Goroutine、セマフォ、レートリミッターを使用して並列実行を行います。
 type LLMConcurrentExecutor struct {
 	aiClient      gemini.ContentGenerator
 	promptBuilder domain.PromptBuilder
-	models        LLMModels
 	concurrency   int
 }
 
 // NewLLMConcurrentExecutor は新しい LLMConcurrentExecutor インスタンスを作成します。
-func NewLLMConcurrentExecutor(cfg *config.Config, ai gemini.ContentGenerator, pb domain.PromptBuilder) (*LLMConcurrentExecutor, error) {
-	models := LLMModels{
-		mapModel:    cfg.MapModel,
-		reduceModel: cfg.ReduceModel,
-	}
-
+func NewLLMConcurrentExecutor(ai gemini.ContentGenerator, pb domain.PromptBuilder, concurrency int) (*LLMConcurrentExecutor, error) {
 	return &LLMConcurrentExecutor{
 		aiClient:      ai,
 		promptBuilder: pb,
-		concurrency:   cfg.Concurrency,
-		models:        models,
+		concurrency:   concurrency,
 	}, nil
 }
 
@@ -57,7 +38,7 @@ type MapResult struct {
 }
 
 // ExecuteMap は Mapフェーズの並列処理を実行します。
-func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, allSegments []Segment) ([]string, error) {
+func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, allSegments []Segment) ([]string, error) {
 	total := len(allSegments)
 	// 結果を格納するスライスをあらかじめ確保（順序を維持するため）
 	summaries := make([]string, total)
@@ -67,7 +48,7 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, allSegments []Se
 	sem := make(chan struct{}, e.concurrency)
 
 	// レートリミット管理
-	ticker := time.NewTicker(DefaultLLMRateLimit)
+	ticker := time.NewTicker(defaultLLMRateLimit)
 	defer ticker.Stop()
 
 	slog.Info("セグメントの並列処理を開始します",
@@ -106,7 +87,7 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, allSegments []Se
 				return
 			}
 
-			response, err := e.aiClient.GenerateContent(ctx, e.models.mapModel, prompt)
+			response, err := e.aiClient.GenerateContent(ctx, model, prompt)
 			if err != nil {
 				select {
 				case errChan <- fmt.Errorf("セグメント %d (URL: %s) 処理失敗: %w", index+1, s.URL, err):
@@ -135,23 +116,23 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, allSegments []Se
 }
 
 // ExecuteReduce は ReduceフェーズのAPI呼び出しを実行します。
-func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, combinedText string) (string, error) {
-	slog.Info("最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", e.models.reduceModel))
+func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, model, combinedText string) (string, error) {
+	slog.Info("最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", model))
 
 	prompt, err := e.promptBuilder.GenerateReduce(combinedText)
 	if err != nil {
 		return "", fmt.Errorf("最終 Reduce プロンプトの生成に失敗しました: %w", err)
 	}
 
-	finalResponse, err := e.aiClient.GenerateContent(ctx, e.models.reduceModel, prompt)
+	response, err := e.aiClient.GenerateContent(ctx, model, prompt)
 	if err != nil {
 		return "", fmt.Errorf("LLM最終構造化処理（Reduceフェーズ）に失敗しました: %w", err)
 	}
 
 	slog.Info(
 		"Reduce処理成功",
-		"model", e.models.reduceModel,
+		"model", model,
 	)
 
-	return finalResponse.Text, nil
+	return response.Text, nil
 }

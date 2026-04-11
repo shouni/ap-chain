@@ -9,73 +9,91 @@ import (
 	"ap-chain/internal/domain"
 )
 
+const (
+	// defaultSeparator は、一般的な段落区切りに使用される標準的な区切り文字です。
+	defaultSeparator = "\n\n"
+	// maxSegmentChars は、MapフェーズでLLMに一度に渡す安全な最大文字数。
+	maxSegmentChars = 20000
+)
+
 // Segment は、LLMに渡すテキストと、それが由来する元のURLを保持します。
 type Segment struct {
 	Text string
 	URL  string
 }
 
+// LLMModels マップ操作およびリデュース操作に使用されるモデルを表します。
+type LLMModels struct {
+	Map    string
+	Reduce string
+}
+
 type LLMExecutor interface {
-	ExecuteMap(ctx context.Context, segments []Segment) ([]string, error)
-	ExecuteReduce(ctx context.Context, combinedText string) (string, error)
+	ExecuteMap(ctx context.Context, model string, allSegments []Segment) ([]string, error)
+	ExecuteReduce(ctx context.Context, model, combinedText string) (string, error)
 }
 
 // Cleaner はコンテンツのクリーンアップと要約を担当します。
 type Cleaner struct {
-	builder  domain.PromptBuilder
 	executor LLMExecutor
+	models   LLMModels
 }
 
-// NewCleaner は新しい Cleaner インスタンスを作成し、PromptBuilderを一度だけ初期化します。
-func NewCleaner(builder domain.PromptBuilder, executor LLMExecutor) (*Cleaner, error) {
+// NewCleaner は新しい Cleaner インスタンスを作成します。
+func NewCleaner(executor LLMExecutor, models LLMModels) (*Cleaner, error) {
 	if executor == nil {
 		return nil, fmt.Errorf("LLM Executor は nil にできません")
 	}
 
 	return &Cleaner{
-		builder:  builder,
 		executor: executor,
+		models:   models,
 	}, nil
 }
 
 // CleanAndStructureText は、MapReduce処理を実行し、最終的なクリーンアップと構造化を行います。
-// LLMExecutor に依存することで、APIキーの処理や並列実行の詳細から解放されています。
 func (c *Cleaner) CleanAndStructureText(ctx context.Context, results []domain.URLResult) (string, error) {
 	// 1. MapフェーズのためのURL単位のテキスト分割
-	var allSegments []Segment
+	// results の数からある程度のセグメント数を予測し、アロケーションを最適化
+	allSegments := make([]Segment, 0, len(results)*2)
 	for _, res := range results {
-		// URLResultのContentを個別にセグメント分割
-		segments := segmentText(res.Content, MaxSegmentChars)
+		segments := segmentText(res.Content, maxSegmentChars)
 		for _, segText := range segments {
 			allSegments = append(allSegments, Segment{Text: segText, URL: res.URL})
 		}
 	}
 
-	slog.Info("コンテンツをURL単位でセグメントに分割しました。中間要約を開始します。",
+	slog.InfoContext(ctx, "Starting MapReduce process",
+		slog.Int("total_urls", len(results)),
 		slog.Int("total_segments", len(allSegments)))
 
 	// 2. Mapフェーズの実行（Executorに委譲）
-	intermediateSummaries, err := c.executor.ExecuteMap(ctx, allSegments)
+	intermediateSummaries, err := c.executor.ExecuteMap(ctx, c.models.Map, allSegments)
 	if err != nil {
 		return "", fmt.Errorf("セグメント処理（Mapフェーズ）に失敗しました: %w", err)
 	}
 
 	// 3. Reduceフェーズの準備：中間要約の結合
-	finalCombinedText := strings.Join(intermediateSummaries, "\n\n--- INTERMEDIATE SUMMARY END ---\n\n")
+	const summarySeparator = "\n\n--- INTERMEDIATE SUMMARY END ---\n\n"
+	finalCombinedText := strings.Join(intermediateSummaries, summarySeparator)
 
-	// 4. Reduceフェーズ：最終的な統合と構造化のためのLLM呼び出し（Executorに委譲）
-	slog.Info("中間要約の結合が完了しました。最終的な構造化（Reduceフェーズ）を開始します。")
+	// 4. Reduceフェーズ：最終的な統合と構造化
+	slog.InfoContext(ctx, "Final structuring started (Reduce phase)")
 
-	finalResponseText, err := c.executor.ExecuteReduce(ctx, finalCombinedText)
+	finalResponseText, err := c.executor.ExecuteReduce(ctx, c.models.Reduce, finalCombinedText)
 	if err != nil {
 		return "", fmt.Errorf("LLM最終構造化処理（Reduceフェーズ）に失敗しました: %w", err)
 	}
 
-	return strings.TrimSpace(finalResponseText), nil
+	result := strings.TrimSpace(finalResponseText)
+	if result == "" {
+		return "", fmt.Errorf("Reduceフェーズの結果が空です")
+	}
+
+	return result, nil
 }
 
-// segmentText は、結合されたテキストを、安全な最大文字数を超えないように分割します。
-// これは純粋な関数であり、外部の状態に依存しません。
+// segmentText は、テキストを最大文字数を超えないように分割します。
 func segmentText(text string, maxChars int) []string {
 	var segments []string
 	current := []rune(text)
@@ -88,23 +106,16 @@ func segmentText(text string, maxChars int) []string {
 
 		splitIndex := maxChars
 		segmentCandidate := string(current[:maxChars])
-		separatorFound := false
-		separatorLen := 0
 
-		// 1. 一般的な改行(\n\n)を探す
-		if lastSepIdx := strings.LastIndex(segmentCandidate, DefaultSeparator); lastSepIdx != -1 && lastSepIdx > maxChars/2 {
-			splitIndex = lastSepIdx
-			separatorLen = len(DefaultSeparator)
-			separatorFound = true
-		}
+		// 優先的な区切り文字（改行）を、最大文字数の半分より後ろから探す
+		lastSepIdx := strings.LastIndex(segmentCandidate, defaultSeparator)
 
-		// 区切り文字の種類に応じて、加算する長さを適切に選択
-		if separatorFound {
-			// 区切り文字の直後までを分割位置とする
-			splitIndex += separatorLen
+		if lastSepIdx != -1 && lastSepIdx > maxChars/2 {
+			// 区切り文字が見つかった場合は、その直後までをセグメントとする
+			splitIndex = lastSepIdx + len(defaultSeparator)
 		} else {
-			// 安全な区切りが見つからない場合は、そのまま最大文字数で切り、警告を出す
-			slog.Warn("⚠️ 分割点で適切な区切りが見つかりませんでした。強制的に分割します。",
+			// 安全な区切りが見つからない場合は、そのまま最大文字数で切る
+			slog.Warn("No suitable separator found in segment. Forced splitting at max chars.",
 				slog.Int("forced_chars", maxChars))
 			splitIndex = maxChars
 		}

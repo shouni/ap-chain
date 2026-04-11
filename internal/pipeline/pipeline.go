@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -32,7 +33,7 @@ func New(f Fetcher, c Cleaner, p Publisher, n domain.Notifier) *Pipeline {
 func (p *Pipeline) Execute(ctx context.Context, req domain.Request) (err error) {
 	// 0. バリデーション（早期リターン）
 	if req.InputURI == "" || req.OutputURI == "" {
-		return fmt.Errorf("InputURI and OutputURI are required")
+		return errors.New("InputURI and OutputURI are required")
 	}
 
 	// 1. エラー発生時の遅延通知（deferによる一元管理）
@@ -54,7 +55,7 @@ func (p *Pipeline) Execute(ctx context.Context, req domain.Request) (err error) 
 		return fmt.Errorf("clean process failed: %w", err)
 	}
 	if strings.TrimSpace(content) == "" {
-		return fmt.Errorf("cleaned content is empty")
+		return errors.New("cleaned content is empty")
 	}
 
 	// 4. Publish

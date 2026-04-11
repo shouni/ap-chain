@@ -15,13 +15,19 @@ import (
 
 const defaultLLMRateLimit = 20 * time.Second
 
+// PromptBuilder は、プロンプト文字列を生成する責務を定義します。
+type PromptBuilder interface {
+	GenerateMap(text, url string) (string, error)
+	GenerateReduce(text string) (string, error)
+}
+
 type Executor struct {
 	aiClient      gemini.ContentGenerator
-	promptBuilder domain.PromptBuilder
+	promptBuilder PromptBuilder
 	concurrency   int
 }
 
-func NewExecutor(ai gemini.ContentGenerator, pb domain.PromptBuilder, concurrency int) (*Executor, error) {
+func NewExecutor(ai gemini.ContentGenerator, pb PromptBuilder, concurrency int) (*Executor, error) {
 	return &Executor{
 		aiClient:      ai,
 		promptBuilder: pb,

@@ -20,6 +20,7 @@ const (
 	defaultMapModelName    = "gemini-3-flash-preview"
 	defaultReduceModelName = "gemini-3-flash-preview"
 	defaultLLMTimeout      = 5 * time.Minute
+	defaultMaxConcurrency  = 1
 )
 
 // Config はコマンドラインフラグを保持する構造体です。
@@ -65,11 +66,13 @@ func (c *Config) FillDefaults(envCfg *Config) {
 	if c.SlackWebhookURL == "" {
 		c.SlackWebhookURL = envCfg.SlackWebhookURL
 	}
+	if c.Concurrency <= 0 {
+		c.Concurrency = envCfg.Concurrency
+	}
 
 	c.HTTPTimeout = DefaultHTTPTimeout
 	c.ScraperTimeout = defaultLScraperTimeout
 
-	c.Concurrency = 1
 	c.LLMTimeout = defaultLLMTimeout
 	c.MaxScraperParallel = defaultParallel
 	c.MapModel = defaultMapModelName
@@ -82,5 +85,6 @@ func LoadConfig() *Config {
 		ProjectID:       envutil.GetEnv("GCP_PROJECT_ID", ""),
 		GeminiAPIKey:    envutil.GetEnv("GEMINI_API_KEY", ""),
 		SlackWebhookURL: envutil.GetEnv("SLACK_WEBHOOK_URL", ""),
+		Concurrency:     envutil.GetEnvAsInt("MAX_CONCURRENCY", defaultMaxConcurrency),
 	}
 }

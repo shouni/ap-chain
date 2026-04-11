@@ -39,6 +39,7 @@ func NewPipeline(
 	}
 }
 
+// Execute は、パイプラインの各ステップ（取得、クリーンアップ、公開）を順次実行し、結果を通知します。
 func (p *Pipeline) Execute(ctx context.Context) (err error) {
 	var urlResults []ports.URLResult
 

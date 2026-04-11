@@ -12,7 +12,7 @@ import (
 	"ap-chain/internal/domain"
 )
 
-// defaultLLMRateLimit は、2sごとに1リクエストを許可するレートリミットです。
+// defaultLLMRateLimit は、レートリミットを制御するための間隔です。
 const defaultLLMRateLimit = 20 * time.Second
 
 // LLMConcurrentExecutor は LLMExecutor の具体的な実装で、Goroutine、セマフォ、レートリミッターを使用して並列実行を行います。
@@ -31,32 +31,23 @@ func NewLLMConcurrentExecutor(ai gemini.ContentGenerator, pb domain.PromptBuilde
 	}, nil
 }
 
-// MapResult はセグメント処理の結果を保持します。
-type MapResult struct {
-	Summary string
-	Err     error
-}
-
 // ExecuteMap は Mapフェーズの並列処理を実行します。
 func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, allSegments []Segment) ([]string, error) {
 	total := len(allSegments)
-	// 結果を格納するスライスをあらかじめ確保（順序を維持するため）
 	summaries := make([]string, total)
-	errChan := make(chan error, 1) // 最初のエラーだけ捕まえれば良いためバッファ1
+	errChan := make(chan error, 1)
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, e.concurrency)
 
-	// レートリミット管理
 	ticker := time.NewTicker(defaultLLMRateLimit)
 	defer ticker.Stop()
 
-	slog.Info("セグメントの並列処理を開始します",
+	slog.InfoContext(ctx, "セグメントの並列処理を開始します",
 		slog.Int("total_segments", total),
 		slog.Int("max_parallel", e.concurrency))
 
 	for i, seg := range allSegments {
-		// エラーが発生していたら新規 Goroutine 生成を停止
 		select {
 		case err := <-errChan:
 			return nil, err
@@ -96,16 +87,16 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 				return
 			}
 
-			// 指定されたインデックスに直接書き込むことで順序を維持
 			summaries[index] = response.Text
 
-			slog.Info("セグメント処理成功", "index", index+1, "url", s.URL)
+			slog.InfoContext(ctx, "セグメント処理成功",
+				slog.Int("index", index+1),
+				slog.String("url", s.URL))
 		}(i, seg)
 	}
 
 	wg.Wait()
 
-	// 最後にエラーが届いていないか確認
 	select {
 	case err := <-errChan:
 		return nil, err
@@ -117,7 +108,7 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 
 // ExecuteReduce は ReduceフェーズのAPI呼び出しを実行します。
 func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, model, combinedText string) (string, error) {
-	slog.Info("最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", model))
+	slog.InfoContext(ctx, "最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", model))
 
 	prompt, err := e.promptBuilder.GenerateReduce(combinedText)
 	if err != nil {
@@ -129,9 +120,8 @@ func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, model, combin
 		return "", fmt.Errorf("LLM最終構造化処理（Reduceフェーズ）に失敗しました: %w", err)
 	}
 
-	slog.Info(
-		"Reduce処理成功",
-		"model", model,
+	slog.InfoContext(ctx, "Reduce処理成功",
+		slog.String("model", model),
 	)
 
 	return response.Text, nil

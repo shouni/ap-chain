@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"unicode/utf8"
 
 	"ap-chain/internal/domain"
 )
@@ -54,7 +55,6 @@ func NewCleaner(executor LLMExecutor, models LLMModels) (*Cleaner, error) {
 // CleanAndStructureText は、MapReduce処理を実行し、最終的なクリーンアップと構造化を行います。
 func (c *Cleaner) CleanAndStructureText(ctx context.Context, results []domain.URLResult) (string, error) {
 	// 1. MapフェーズのためのURL単位のテキスト分割
-	// results の数からある程度のセグメント数を予測し、アロケーションを最適化
 	allSegments := make([]Segment, 0, len(results)*2)
 	for _, res := range results {
 		segments := segmentText(res.Content, maxSegmentChars)
@@ -99,27 +99,38 @@ func segmentText(text string, maxChars int) []string {
 	current := []rune(text)
 
 	for len(current) > 0 {
+		// すでに残りルーン数が上限以下ならそのまま終了
 		if len(current) <= maxChars {
 			segments = append(segments, string(current))
 			break
 		}
 
+		// デフォルトは最大文字数で分割
 		splitIndex := maxChars
-		segmentCandidate := string(current[:maxChars])
+		// candidate は最初の maxChars 文字分を string に戻したもの
+		candidate := string(current[:maxChars])
 
-		// 優先的な区切り文字（改行）を、最大文字数の半分より後ろから探す
-		lastSepIdx := strings.LastIndex(segmentCandidate, defaultSeparator)
+		// 優先的な区切り文字（改行）をバイト単位で検索
+		lastByteIdx := strings.LastIndex(candidate, defaultSeparator)
 
-		if lastSepIdx != -1 && lastSepIdx > maxChars/2 {
-			// 区切り文字が見つかった場合は、その直後までをセグメントとする
-			splitIndex = lastSepIdx + len(defaultSeparator)
-		} else {
-			// 安全な区切りが見つからない場合は、そのまま最大文字数で切る
-			slog.Warn("No suitable separator found in segment. Forced splitting at max chars.",
-				slog.Int("forced_chars", maxChars))
-			splitIndex = maxChars
+		if lastByteIdx != -1 {
+			// 重要: バイトインデックスをルーン数に変換する
+			// これにより、マルチバイト文字が混在していても正しい切り出し位置が算出される
+			runeCountBeforeSep := utf8.RuneCountInString(candidate[:lastByteIdx])
+
+			// セグメントが極端に短くなりすぎないよう、半分より後ろで見つかった場合のみ採用
+			if runeCountBeforeSep > maxChars/2 {
+				splitIndex = runeCountBeforeSep + utf8.RuneCountInString(defaultSeparator)
+			}
 		}
 
+		// 安全な区切りが見つからなかった（または前の方すぎた）場合
+		if splitIndex == maxChars {
+			slog.Warn("No suitable separator found in segment. Forced splitting at max chars.",
+				slog.Int("forced_chars", maxChars))
+		}
+
+		// 決定したルーン位置でスライス
 		segments = append(segments, string(current[:splitIndex]))
 		current = current[splitIndex:]
 	}

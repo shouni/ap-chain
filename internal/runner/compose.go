@@ -35,9 +35,8 @@ func NewComposeRunner(cfg *config.Config, composer Composer) (*ComposeRunner, er
 		return nil, errors.New("config cannot be nil")
 	}
 	if composer == nil {
-		return nil, errors.New("executor cannot be nil")
+		return nil, errors.New("composer cannot be nil")
 	}
-
 	return &ComposeRunner{
 		cfg:      cfg,
 		composer: composer,

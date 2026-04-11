@@ -50,7 +50,7 @@ func buildComposer(ctx context.Context, appCtx *app.Container) (*runner.ComposeR
 	if err != nil {
 		return nil, fmt.Errorf("PromptAdapterの初期化に失敗しました: %w", err)
 	}
-	composerAdapter, err := adapters.NewComposer(ai, promptBuilder, appCtx.Config.Concurrency)
+	composerAdapter, err := adapters.NewComposerAdapter(ai, promptBuilder, appCtx.Config.Concurrency)
 	if err != nil {
 		return nil, fmt.Errorf("Composer Adapterの初期化に失敗しました: %w", err)
 	}

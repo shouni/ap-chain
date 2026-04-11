@@ -6,8 +6,6 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/shouni/go-web-exact/v2/ports"
-
 	"ap-chain/internal/domain"
 )
 
@@ -42,7 +40,7 @@ func NewCleaner(builder domain.PromptBuilder, executor LLMExecutor) (*Cleaner, e
 
 // CleanAndStructureText は、MapReduce処理を実行し、最終的なクリーンアップと構造化を行います。
 // LLMExecutor に依存することで、APIキーの処理や並列実行の詳細から解放されています。
-func (c *Cleaner) CleanAndStructureText(ctx context.Context, results []ports.URLResult) (string, error) {
+func (c *Cleaner) CleanAndStructureText(ctx context.Context, results []domain.URLResult) (string, error) {
 	// 1. MapフェーズのためのURL単位のテキスト分割
 	var allSegments []Segment
 	for _, res := range results {

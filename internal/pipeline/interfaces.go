@@ -1,8 +1,9 @@
 package pipeline
 
 import (
-	"ap-chain/internal/domain"
 	"context"
+
+	"ap-chain/internal/domain"
 )
 
 type (

@@ -24,7 +24,7 @@ func buildPipeline(ctx context.Context, appCtx *app.Container) (domain.Pipeline,
 		return nil, fmt.Errorf("パブリッシャーランナーの初期化に失敗しました: %w", err)
 	}
 
-	p := pipeline.NewPipeline(appCtx.Config, fetchRunner, cleanRunner, publisherRunner, appCtx.Notifier)
+	p := pipeline.NewPipeline(fetchRunner, cleanRunner, publisherRunner, appCtx.Notifier)
 
 	return p, nil
 }

@@ -42,7 +42,7 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, e.concurrency)
-	limiter := rate.NewLimiter(rate.Every(defaultLLMRateLimit), 1)
+	limiter := rate.NewLimiter(rate.Every(defaultLLMRateLimit), e.concurrency)
 
 	slog.InfoContext(ctx, "セグメントの並列処理を開始します",
 		slog.Int("total_segments", total),
@@ -60,14 +60,18 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 
 		// 1. メインループでレートリミットを待機（ゴルーチンの大量生成を防ぐ）
 		if err := limiter.Wait(ctx); err != nil {
-			return nil, err
+			e.sendError(errChan, err)
+			cancel()
+			break
 		}
 
 		// 2. セマフォを取得して同時実行数を制限
 		select {
 		case sem <- struct{}{}:
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			e.sendError(errChan, ctx.Err())
+			cancel()
+			break
 		}
 
 		wg.Add(1)

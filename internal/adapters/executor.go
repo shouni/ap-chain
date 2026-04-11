@@ -15,14 +15,14 @@ import (
 
 const defaultLLMRateLimit = 20 * time.Second
 
-type LLMConcurrentExecutor struct {
+type Executor struct {
 	aiClient      gemini.ContentGenerator
 	promptBuilder domain.PromptBuilder
 	concurrency   int
 }
 
-func NewLLMConcurrentExecutor(ai gemini.ContentGenerator, pb domain.PromptBuilder, concurrency int) (*LLMConcurrentExecutor, error) {
-	return &LLMConcurrentExecutor{
+func NewExecutor(ai gemini.ContentGenerator, pb domain.PromptBuilder, concurrency int) (*Executor, error) {
+	return &Executor{
 		aiClient:      ai,
 		promptBuilder: pb,
 		concurrency:   concurrency,
@@ -30,7 +30,7 @@ func NewLLMConcurrentExecutor(ai gemini.ContentGenerator, pb domain.PromptBuilde
 }
 
 // ExecuteMap は errgroup と rate.Limiter を使用して、安全かつ効率的に並列実行を行います。
-func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error) {
+func (e *Executor) ExecuteMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error) {
 	total := len(allSegments)
 	summaries := make([]string, total)
 
@@ -85,7 +85,7 @@ Loop:
 }
 
 // ExecuteReduce は現状のロジックを維持
-func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, model, combinedText string) (string, error) {
+func (e *Executor) ExecuteReduce(ctx context.Context, model, combinedText string) (string, error) {
 	slog.InfoContext(ctx, "最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", model))
 
 	prompt, err := e.promptBuilder.GenerateReduce(combinedText)

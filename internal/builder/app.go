@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"ap-chain/internal/adapters"
 	"context"
 	"fmt"
 	"io"
@@ -33,10 +34,17 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 
 	httpClient := httpkit.New(cfg.HTTPTimeout)
 
+	// 4. Slack Adapter
+	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize Slack adapter: %w", err)
+	}
+
 	appCtx := &app.Container{
 		Config:     cfg,
 		RemoteIO:   rio,
 		HTTPClient: httpClient,
+		Notifier:   slack,
 	}
 
 	p, err := buildPipeline(ctx, appCtx)

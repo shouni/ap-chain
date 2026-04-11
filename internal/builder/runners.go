@@ -82,6 +82,7 @@ func buildPublishRunner(ctx context.Context, appCtx *app.Container) (domain.Publ
 
 	return runner.NewPublisherRunner(
 		appCtx.RemoteIO.Writer,
+		appCtx.RemoteIO.Signer,
 		md,
 	), nil
 }

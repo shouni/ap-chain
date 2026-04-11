@@ -28,8 +28,8 @@ func NewFetchRunner(reader domain.ContentReader, scraper ports.ScrapeRunner) *Fe
 	}
 }
 
-// Run は、ソースURLからURLリストを取得し、スクレイピングを実行します。
-func (r *FetchRunner) Run(ctx context.Context, sourceURI string) ([]ports.URLResult, error) {
+// Run は、ソースURLからURLリストを取得し、スクレイピングを実行して domain.URLResult のスライスを返します。
+func (r *FetchRunner) Run(ctx context.Context, sourceURI string) ([]domain.URLResult, error) {
 	if sourceURI == "" {
 		return nil, fmt.Errorf("入力ソース(--input)が指定されていません")
 	}
@@ -51,24 +51,35 @@ func (r *FetchRunner) Run(ctx context.Context, sourceURI string) ([]ports.URLRes
 	}
 
 	// 3. スクレイピング実行
-	results := r.scraper.Run(ctx, urls)
-	if len(results) == 0 {
+	rawResults := r.scraper.Run(ctx, urls)
+	if len(rawResults) == 0 {
 		return nil, fmt.Errorf("スクレイピング結果が空です")
 	}
 
-	var hasValidContent bool
-	for _, res := range results {
+	// 4. domain.URLResult (自身の型) への詰め替えとフィルタリング
+	// rawResults の要素数が既知であるため、キャパシティを事前に割り当ててアロケーションを最適化
+	validResults := make([]domain.URLResult, 0, len(rawResults))
+	for _, res := range rawResults {
+		// エラーがなく、コンテンツが空でないものだけを採用
 		if res.Error == nil && res.Content != "" {
-			hasValidContent = true
-			break
+			validResults = append(validResults, domain.URLResult{
+				URL:     res.URL,
+				Content: res.Content,
+			})
+		} else if res.Error != nil {
+			slog.WarnContext(ctx, "スクレイピングに失敗したURLをスキップしました", "url", res.URL, "error", res.Error)
+		} else {
+			// エラーはないがコンテンツが空の場合もログに残し、トラブルシューティングを容易にする
+			slog.WarnContext(ctx, "コンテンツが空のためURLをスキップしました", "url", res.URL)
 		}
 	}
 
-	if !hasValidContent {
+	if len(validResults) == 0 {
 		return nil, fmt.Errorf("処理可能なWebコンテンツを一件も取得できませんでした")
 	}
 
-	return results, nil
+	slog.InfoContext(ctx, "Fetching completed", "total", len(urls), "valid", len(validResults))
+	return validResults, nil
 }
 
 // readContent は、指定されたソースURLからコンテンツを取得します。
@@ -121,7 +132,6 @@ func (r *FetchRunner) parseURLs(ctx context.Context, content string) ([]string, 
 		urls = append(urls, line)
 	}
 
-	// Scannerの内部エラーをチェックし、呼び出し元に伝える
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("スキャン中にエラーが発生しました: %w", err)
 	}

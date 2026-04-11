@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shouni/go-web-exact/v2/ports"
-
 	"ap-chain/internal/config"
 	"ap-chain/internal/domain"
 )
@@ -41,7 +39,7 @@ func NewPipeline(
 
 // Execute は、パイプラインの各ステップ（取得、クリーンアップ、公開）を順次実行し、結果を通知します。
 func (p *Pipeline) Execute(ctx context.Context) (err error) {
-	var urlResults []ports.URLResult
+	var urlResults []domain.URLResult
 
 	// 1. エラー発生時の遅延通知
 	defer func() {
@@ -98,7 +96,7 @@ func (p *Pipeline) sendNotify(ctx context.Context, notifyFn func(context.Context
 }
 
 // fetch は、コンテンツ取得を実行します。
-func (p *Pipeline) fetch(ctx context.Context) ([]ports.URLResult, error) {
+func (p *Pipeline) fetch(ctx context.Context) ([]domain.URLResult, error) {
 	results, err := p.fetcher.Run(ctx, p.cfg.InputFile)
 	if err != nil {
 		return nil, fmt.Errorf("スクリプトテキスト作成に失敗しました: %w", err)
@@ -108,7 +106,7 @@ func (p *Pipeline) fetch(ctx context.Context) ([]ports.URLResult, error) {
 }
 
 // clean は、LLMマルチステップを実行します。
-func (p *Pipeline) clean(ctx context.Context, result []ports.URLResult) (string, error) {
+func (p *Pipeline) clean(ctx context.Context, result []domain.URLResult) (string, error) {
 	content, err := p.cleaner.Run(ctx, result)
 	if err != nil {
 		return "", fmt.Errorf("結果テキスト作成に失敗しました: %w", err)

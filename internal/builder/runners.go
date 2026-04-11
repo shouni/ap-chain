@@ -51,7 +51,7 @@ func buildCleanRunner(ctx context.Context, appCtx *app.Container) (domain.CleanR
 	if err != nil {
 		return nil, fmt.Errorf("PromptAdapterの初期化に失敗しました: %w", err)
 	}
-	executor, err := adapters.NewLLMConcurrentExecutor(ai, promptBuilder, appCtx.Config.Concurrency)
+	executor, err := adapters.NewExecutor(ai, promptBuilder, appCtx.Config.Concurrency)
 	if err != nil {
 		return nil, fmt.Errorf("cleanerの初期化に失敗しました: %w", err)
 	}

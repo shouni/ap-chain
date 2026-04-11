@@ -98,20 +98,17 @@ func segmentText(ctx context.Context, text string, maxChars int) []string {
 	var segments []string
 
 	for len(text) > 0 {
-		// 先頭から maxChars ルーン分のバイトインデックスを特定
-		byteIdx := 0
-		runeCount := 0
-		for i := 0; i < len(text) && runeCount < maxChars; {
-			_, size := utf8.DecodeRuneInString(text[i:])
-			i += size
-			byteIdx = i
-			runeCount++
-		}
-
-		// 残りのテキストが maxChars ルーン以下の場合
-		if runeCount <= maxChars && byteIdx == len(text) {
+		// 残りが maxChars ルーン以下の場合はそのまま追加して終了
+		if utf8.RuneCountInString(text) <= maxChars {
 			segments = append(segments, text)
 			break
+		}
+
+		// maxChars ルーン目のバイトインデックスを特定
+		byteIdx := 0
+		for i := 0; i < maxChars; i++ {
+			_, size := utf8.DecodeRuneInString(text[byteIdx:])
+			byteIdx += size
 		}
 
 		candidate := text[:byteIdx]
@@ -119,13 +116,10 @@ func segmentText(ctx context.Context, text string, maxChars int) []string {
 
 		splitByteIdx := byteIdx
 		if lastByteIdx != -1 {
-			runeCountBeforeSep := utf8.RuneCountInString(candidate[:lastByteIdx])
-			if runeCountBeforeSep > maxChars/2 {
+			if utf8.RuneCountInString(candidate[:lastByteIdx]) > maxChars/2 {
 				splitByteIdx = lastByteIdx + len(defaultSeparator)
 			}
-		}
-
-		if splitByteIdx == byteIdx {
+		} else {
 			slog.WarnContext(ctx, "No suitable separator found in segment. Forced splitting at max chars.",
 				slog.Int("forced_chars", maxChars))
 		}

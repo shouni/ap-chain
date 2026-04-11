@@ -31,11 +31,6 @@ type ContentReader interface {
 	Open(ctx context.Context, uri string) (io.ReadCloser, error)
 }
 
-// Cleaner は、URL結果のクリーンアップと構造化を実行する責務を持つインターフェースです。
-type Cleaner interface {
-	CleanAndStructureText(ctx context.Context, results []URLResult) (string, error)
-}
-
 // PromptBuilder は、プロンプト文字列を生成する責務を定義します。
 type PromptBuilder interface {
 	GenerateMap(text, url string) (string, error)

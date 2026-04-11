@@ -12,7 +12,6 @@ import (
 
 	"ap-chain/internal/adapters"
 	"ap-chain/internal/app"
-	"ap-chain/internal/cleaner"
 	"ap-chain/internal/domain"
 	"ap-chain/internal/runner"
 )
@@ -52,18 +51,17 @@ func buildCleanRunner(ctx context.Context, appCtx *app.Container) (domain.CleanR
 	if err != nil {
 		return nil, fmt.Errorf("PromptAdapterの初期化に失敗しました: %w", err)
 	}
-	executor, err := cleaner.NewLLMConcurrentExecutor(appCtx.Config, ai, promptBuilder)
-	if err != nil {
-		return nil, fmt.Errorf("cleanerの初期化に失敗しました: %w", err)
-	}
-	cleanerRunner, err := cleaner.NewCleaner(promptBuilder, executor)
+	executor, err := adapters.NewLLMConcurrentExecutor(ai, promptBuilder, appCtx.Config.Concurrency)
 	if err != nil {
 		return nil, fmt.Errorf("cleanerの初期化に失敗しました: %w", err)
 	}
 
-	return runner.NewCleanRunner(
-		cleanerRunner,
-	), nil
+	cleanRunner, err := runner.NewCleanRunner(appCtx.Config, executor)
+	if err != nil {
+		return nil, fmt.Errorf("cleanerの初期化に失敗しました: %w", err)
+	}
+
+	return cleanRunner, nil
 }
 
 // buildPublishRunner は、PublishRunner のインスタンスを返します。

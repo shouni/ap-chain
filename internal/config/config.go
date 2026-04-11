@@ -19,8 +19,8 @@ const (
 	// AI
 	defaultMapModelName    = "gemini-3-flash-preview"
 	defaultReduceModelName = "gemini-3-flash-preview"
-	defaultLLMTimeout      = 5 * time.Minute
 	defaultMaxConcurrency  = 1
+	defaultRateIntervalSec = 10
 )
 
 // Config はコマンドラインフラグを保持する構造体です。
@@ -36,8 +36,8 @@ type Config struct {
 	GeminiAPIKey    string
 	MapModel        string
 	ReduceModel     string
-	Concurrency     int
-	LLMTimeout      time.Duration
+	MaxConcurrency  int
+	RateInterval    time.Duration
 	SlackWebhookURL string
 }
 
@@ -63,20 +63,26 @@ func (c *Config) FillDefaults(envCfg *Config) {
 	if c.GeminiAPIKey == "" {
 		c.GeminiAPIKey = envCfg.GeminiAPIKey
 	}
+	if c.MapModel == "" {
+		c.MapModel = envCfg.MapModel
+	}
+	if c.ReduceModel == "" {
+		c.ReduceModel = envCfg.ReduceModel
+	}
+
 	if c.SlackWebhookURL == "" {
 		c.SlackWebhookURL = envCfg.SlackWebhookURL
 	}
-	if c.Concurrency <= 0 {
-		c.Concurrency = envCfg.Concurrency
+	if c.MaxConcurrency <= 0 {
+		c.MaxConcurrency = envCfg.MaxConcurrency
+	}
+	if c.RateInterval <= 0 {
+		c.RateInterval = envCfg.RateInterval
 	}
 
 	c.HTTPTimeout = DefaultHTTPTimeout
 	c.ScraperTimeout = defaultLScraperTimeout
-
-	c.LLMTimeout = defaultLLMTimeout
 	c.MaxScraperParallel = defaultParallel
-	c.MapModel = defaultMapModelName
-	c.ReduceModel = defaultReduceModelName
 }
 
 // LoadConfig は環境変数から設定を読み込みます。
@@ -85,6 +91,9 @@ func LoadConfig() *Config {
 		ProjectID:       envutil.GetEnv("GCP_PROJECT_ID", ""),
 		GeminiAPIKey:    envutil.GetEnv("GEMINI_API_KEY", ""),
 		SlackWebhookURL: envutil.GetEnv("SLACK_WEBHOOK_URL", ""),
-		Concurrency:     envutil.GetEnvAsInt("MAX_CONCURRENCY", defaultMaxConcurrency),
+		MapModel:        envutil.GetEnv("GEMINI_MODEL", defaultMapModelName),
+		ReduceModel:     envutil.GetEnv("GEMINI_QUALITY_MODEL", defaultReduceModelName),
+		MaxConcurrency:  envutil.GetEnvAsInt("MAX_CONCURRENCY", defaultMaxConcurrency),
+		RateInterval:    time.Duration(envutil.GetEnvAsInt("RATE_INTERVAL_SEC", defaultRateIntervalSec)) * time.Second,
 	}
 }

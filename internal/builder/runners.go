@@ -27,7 +27,7 @@ func buildCollector(ctx context.Context, appCtx *app.Container) (*runner.Collect
 	}
 
 	opts := []scraper.Option{
-		scraper.WithMaxConcurrency(appCtx.Config.Concurrency),
+		scraper.WithMaxConcurrency(appCtx.Config.MaxConcurrency),
 	}
 	sb, err := scraperBuilder.New(appCtx.HTTPClient, opts)
 	if err != nil {
@@ -50,7 +50,15 @@ func buildComposer(ctx context.Context, appCtx *app.Container) (*runner.ComposeR
 	if err != nil {
 		return nil, fmt.Errorf("PromptAdapterの初期化に失敗しました: %w", err)
 	}
-	composerAdapter, err := adapters.NewComposerAdapter(ai, promptBuilder, appCtx.Config.Concurrency)
+	opts := []adapters.ComposerOption{
+		adapters.WithMaxConcurrency(appCtx.Config.MaxConcurrency),
+		adapters.WithRateInterval(appCtx.Config.RateInterval),
+	}
+	composerAdapter, err := adapters.NewComposerAdapter(
+		ai,
+		promptBuilder,
+		opts...,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("Composer Adapterの初期化に失敗しました: %w", err)
 	}

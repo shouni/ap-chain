@@ -13,7 +13,10 @@ import (
 	"ap-chain/internal/domain"
 )
 
-const defaultLLMRateLimit = 20 * time.Second
+const (
+	defaultMaxConcurrency = 1
+	defaultLLMRateLimit   = 10 * time.Second
+)
 
 // PromptBuilder は、プロンプト文字列を生成する責務を定義します。
 type PromptBuilder interface {
@@ -23,21 +26,49 @@ type PromptBuilder interface {
 
 // ComposerAdapter は、LLMを使用してコンテンツを構成するAdapter層の実装です。
 type ComposerAdapter struct {
-	aiClient      gemini.ContentGenerator
-	promptBuilder PromptBuilder
-	concurrency   int
+	aiClient       gemini.ContentGenerator
+	promptBuilder  PromptBuilder
+	maxConcurrency int
+	rateInterval   time.Duration
 }
 
 // NewComposerAdapter は、ComposerAdapter の新しいインスタンスを生成します。
-func NewComposerAdapter(ai gemini.ContentGenerator, pb PromptBuilder, concurrency int) (*ComposerAdapter, error) {
+func NewComposerAdapter(ai gemini.ContentGenerator, pb PromptBuilder, opts ...ComposerOption) (*ComposerAdapter, error) {
 	if ai == nil || pb == nil {
 		return nil, fmt.Errorf("aiClient and promptBuilder are required")
 	}
-	return &ComposerAdapter{
-		aiClient:      ai,
-		promptBuilder: pb,
-		concurrency:   concurrency,
-	}, nil
+	c := &ComposerAdapter{
+		aiClient:       ai,
+		promptBuilder:  pb,
+		maxConcurrency: defaultMaxConcurrency,
+		rateInterval:   defaultLLMRateLimit,
+	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c, nil
+}
+
+type ComposerOption func(*ComposerAdapter)
+
+// WithMaxConcurrency は、最大並列数を設定します。
+func WithMaxConcurrency(value int) ComposerOption {
+	return func(g *ComposerAdapter) {
+		if value > 0 {
+			g.maxConcurrency = value
+		}
+	}
+}
+
+// WithRateInterval は、レートリミット間隔を設定します。
+func WithRateInterval(d time.Duration) ComposerOption {
+	return func(g *ComposerAdapter) {
+		if d > 0 {
+			g.rateInterval = d
+		}
+	}
 }
 
 // RunMap は errgroup と rate.Limiter を使用して、安全かつ効率的に並列実行を行います。
@@ -46,22 +77,21 @@ func (a *ComposerAdapter) RunMap(ctx context.Context, model string, allSegments 
 	summaries := make([]string, total)
 
 	eg, ctx := errgroup.WithContext(ctx)
-	eg.SetLimit(a.concurrency)
-	limiter := rate.NewLimiter(rate.Every(defaultLLMRateLimit), 1)
+	// 同時実行数を制限
+	eg.SetLimit(a.maxConcurrency)
+	// APIレート制限を管理
+	limiter := rate.NewLimiter(rate.Every(a.rateInterval), 1)
 
 	slog.InfoContext(ctx, "セグメントの並列処理を開始します",
 		slog.Int("total_segments", total),
-		slog.Int("max_parallel", a.concurrency))
+		slog.Int("max_parallel", a.maxConcurrency))
 
-	var waitErr error
-Loop:
 	for i, seg := range allSegments {
-		if err := limiter.Wait(ctx); err != nil {
-			waitErr = err
-			break Loop
-		}
-
 		eg.Go(func() error {
+			if err := limiter.Wait(ctx); err != nil {
+				return fmt.Errorf("レート制限の待機中にエラー: %w", err)
+			}
+
 			prompt, err := a.promptBuilder.GenerateMap(seg.Text, seg.URL)
 			if err != nil {
 				return fmt.Errorf("セグメント %d 処理失敗: %w", i+1, err)
@@ -84,10 +114,6 @@ Loop:
 
 	if err := eg.Wait(); err != nil {
 		return nil, err
-	}
-
-	if waitErr != nil {
-		return nil, waitErr
 	}
 
 	return summaries, nil

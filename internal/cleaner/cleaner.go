@@ -57,7 +57,7 @@ func (c *Cleaner) CleanAndStructureText(ctx context.Context, results []domain.UR
 	// 1. MapフェーズのためのURL単位のテキスト分割
 	allSegments := make([]Segment, 0, len(results)*2)
 	for _, res := range results {
-		segments := segmentText(res.Content, maxSegmentChars)
+		segments := segmentText(ctx, res.Content, maxSegmentChars)
 		for _, segText := range segments {
 			allSegments = append(allSegments, Segment{Text: segText, URL: res.URL})
 		}
@@ -94,7 +94,7 @@ func (c *Cleaner) CleanAndStructureText(ctx context.Context, results []domain.UR
 }
 
 // segmentText は、テキストを最大文字数を超えないように分割します。
-func segmentText(text string, maxChars int) []string {
+func segmentText(ctx context.Context, text string, maxChars int) []string {
 	var segments []string
 	current := []rune(text)
 
@@ -126,7 +126,7 @@ func segmentText(text string, maxChars int) []string {
 
 		// 安全な区切りが見つからなかった（または前の方すぎた）場合
 		if splitIndex == maxChars {
-			slog.Warn("No suitable separator found in segment. Forced splitting at max chars.",
+			slog.WarnContext(ctx, "No suitable separator found in segment. Forced splitting at max chars.",
 				slog.Int("forced_chars", maxChars))
 		}
 

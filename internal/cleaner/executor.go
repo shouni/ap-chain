@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/shouni/go-gemini-client/gemini"
+	"golang.org/x/time/rate"
 
 	"ap-chain/internal/domain"
 )
@@ -15,14 +16,12 @@ import (
 // defaultLLMRateLimit は、レートリミットを制御するための間隔です。
 const defaultLLMRateLimit = 20 * time.Second
 
-// LLMConcurrentExecutor は LLMExecutor の具体的な実装で、Goroutine、セマフォ、レートリミッターを使用して並列実行を行います。
 type LLMConcurrentExecutor struct {
 	aiClient      gemini.ContentGenerator
 	promptBuilder domain.PromptBuilder
 	concurrency   int
 }
 
-// NewLLMConcurrentExecutor は新しい LLMConcurrentExecutor インスタンスを作成します。
 func NewLLMConcurrentExecutor(ai gemini.ContentGenerator, pb domain.PromptBuilder, concurrency int) (*LLMConcurrentExecutor, error) {
 	return &LLMConcurrentExecutor{
 		aiClient:      ai,
@@ -31,7 +30,7 @@ func NewLLMConcurrentExecutor(ai gemini.ContentGenerator, pb domain.PromptBuilde
 	}, nil
 }
 
-// ExecuteMap は Mapフェーズの並列処理を実行します。
+// ExecuteMap は Mapフェーズの並列処理を効率的に実行します。
 func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, allSegments []Segment) ([]string, error) {
 	total := len(allSegments)
 	summaries := make([]string, total)
@@ -40,14 +39,14 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, e.concurrency)
 
-	ticker := time.NewTicker(defaultLLMRateLimit)
-	defer ticker.Stop()
+	limiter := rate.NewLimiter(rate.Every(defaultLLMRateLimit), 1)
 
 	slog.InfoContext(ctx, "セグメントの並列処理を開始します",
 		slog.Int("total_segments", total),
 		slog.Int("max_parallel", e.concurrency))
 
 	for i, seg := range allSegments {
+		// 事前のエラーチェック
 		select {
 		case err := <-errChan:
 			return nil, err
@@ -56,34 +55,33 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 		default:
 		}
 
-		sem <- struct{}{}
 		wg.Add(1)
-
 		go func(index int, s Segment) {
-			defer func() { <-sem }()
 			defer wg.Done()
 
-			select {
-			case <-ticker.C:
-			case <-ctx.Done():
+			// 1. レートリミットの待機（セマフォ取得前に行うことでスロットを無駄に占有しない）
+			if err := limiter.Wait(ctx); err != nil {
 				return
 			}
 
+			// 2. セマフォ（同時実行数）の取得
+			select {
+			case sem <- struct{}{}:
+			case <-ctx.Done():
+				return
+			}
+			defer func() { <-sem }()
+
+			// 3. LLM 処理の実行
 			prompt, err := e.promptBuilder.GenerateMap(s.Text, s.URL)
 			if err != nil {
-				select {
-				case errChan <- fmt.Errorf("セグメント %d 処理失敗: %w", index+1, err):
-				default:
-				}
+				e.sendError(errChan, fmt.Errorf("セグメント %d 処理失敗: %w", index+1, err))
 				return
 			}
 
 			response, err := e.aiClient.GenerateContent(ctx, model, prompt)
 			if err != nil {
-				select {
-				case errChan <- fmt.Errorf("セグメント %d (URL: %s) 処理失敗: %w", index+1, s.URL, err):
-				default:
-				}
+				e.sendError(errChan, fmt.Errorf("セグメント %d (URL: %s) 処理失敗: %w", index+1, s.URL, err))
 				return
 			}
 
@@ -106,6 +104,15 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 	return summaries, nil
 }
 
+// sendError は安全に最初のエラーをチャネルに送信します。
+func (e *LLMConcurrentExecutor) sendError(ch chan error, err error) {
+	select {
+	case ch <- err:
+	default:
+		// すでにエラーが送信済みの場合は何もしない
+	}
+}
+
 // ExecuteReduce は ReduceフェーズのAPI呼び出しを実行します。
 func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, model, combinedText string) (string, error) {
 	slog.InfoContext(ctx, "最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", model))
@@ -120,9 +127,7 @@ func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, model, combin
 		return "", fmt.Errorf("LLM最終構造化処理（Reduceフェーズ）に失敗しました: %w", err)
 	}
 
-	slog.InfoContext(ctx, "Reduce処理成功",
-		slog.String("model", model),
-	)
+	slog.InfoContext(ctx, "Reduce処理成功", slog.String("model", model))
 
 	return response.Text, nil
 }

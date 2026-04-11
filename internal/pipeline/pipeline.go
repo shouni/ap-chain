@@ -3,6 +3,7 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/shouni/go-web-exact/v2/ports"
@@ -40,20 +41,26 @@ func NewPipeline(
 // Execute は、すべての依存関係を構築し実行します。
 func (p *Pipeline) Execute(ctx context.Context) (err error) {
 	var urlResults []ports.URLResult
+
+	// defer による一括エラー通知
 	defer func() {
 		if err != nil && p.notifier != nil {
-			_ = p.notifier.NotifyFailure(ctx, err)
+			if notifyErr := p.notifier.NotifyFailure(ctx, err); notifyErr != nil {
+				// 通知自体の失敗はログに記録し、メインの err は維持する
+				slog.Error("failed to send failure notification", "error", notifyErr)
+			}
 		}
 	}()
 
 	// 1. Fetch
 	urlResults, err = p.fetch(ctx)
 	if err != nil {
-		return err // defer で通知される
+		return err // defer 内の err にキャプチャされる
 	}
 
 	// 2. Clean (MapReduce)
-	content, err := p.clean(ctx, urlResults)
+	var content string
+	content, err = p.clean(ctx, urlResults) // := ではなく = を使用してシャドウイングを防止
 	if err != nil {
 		return err
 	}
@@ -64,14 +71,17 @@ func (p *Pipeline) Execute(ctx context.Context) (err error) {
 	}
 
 	// 3. Publish
-	result, err := p.publisher.Run(ctx, p.cfg.OutputFile, content)
+	var result *domain.PublishResult
+	result, err = p.publisher.Run(ctx, p.cfg.OutputFile, content)
 	if err != nil {
 		return err
 	}
 
 	// 4. Success Notification
 	if p.notifier != nil {
-		_ = p.notifier.NotifySuccess(ctx, result.HTML.StorageURI, result.HTML.PublicURL, len(urlResults))
+		if notifyErr := p.notifier.NotifySuccess(ctx, result.HTML.StorageURI, result.HTML.PublicURL, len(urlResults)); notifyErr != nil {
+			slog.Error("failed to send success notification", "error", notifyErr)
+		}
 	}
 
 	return nil
@@ -95,11 +105,4 @@ func (p *Pipeline) clean(ctx context.Context, result []ports.URLResult) (string,
 	}
 
 	return content, nil
-}
-
-func (p *Pipeline) handleError(ctx context.Context, err error) error {
-	if p.notifier != nil {
-		_ = p.notifier.NotifyFailure(ctx, err)
-	}
-	return err
 }

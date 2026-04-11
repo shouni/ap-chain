@@ -13,6 +13,8 @@ import (
 	"ap-chain/internal/domain"
 )
 
+const defaultSignedURLExpiration = 10 * time.Minute
+
 // mdRunner は Markdown 変換処理を実行するコアサービスを抽象化します。
 type mdRunner interface {
 	Run(title string, markdown []byte) (*bytes.Buffer, error)
@@ -89,6 +91,6 @@ func (r *PublishRunner) generateSignedResultURL(ctx context.Context, storageURI 
 	if r.signer == nil {
 		return storageURI, nil
 	}
-	// 10分間有効なGETリクエスト用URLを生成
-	return r.signer.GenerateSignedURL(ctx, storageURI, "GET", 10*time.Minute)
+	// 有効なGETリクエスト用URLを生成
+	return r.signer.GenerateSignedURL(ctx, storageURI, "GET", defaultSignedURLExpiration)
 }

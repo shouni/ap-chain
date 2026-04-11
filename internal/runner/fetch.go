@@ -57,7 +57,8 @@ func (r *FetchRunner) Run(ctx context.Context, sourceURI string) ([]domain.URLRe
 	}
 
 	// 4. domain.URLResult (自身の型) への詰め替えとフィルタリング
-	var validResults []domain.URLResult
+	// rawResults の要素数が既知であるため、キャパシティを事前に割り当ててアロケーションを最適化
+	validResults := make([]domain.URLResult, 0, len(rawResults))
 	for _, res := range rawResults {
 		// エラーがなく、コンテンツが空でないものだけを採用
 		if res.Error == nil && res.Content != "" {
@@ -67,6 +68,9 @@ func (r *FetchRunner) Run(ctx context.Context, sourceURI string) ([]domain.URLRe
 			})
 		} else if res.Error != nil {
 			slog.WarnContext(ctx, "スクレイピングに失敗したURLをスキップしました", "url", res.URL, "error", res.Error)
+		} else {
+			// エラーはないがコンテンツが空の場合もログに残し、トラブルシューティングを容易にする
+			slog.WarnContext(ctx, "コンテンツが空のためURLをスキップしました", "url", res.URL)
 		}
 	}
 
@@ -90,6 +94,7 @@ func (r *FetchRunner) readContent(ctx context.Context, sourceURL string) (string
 		}
 	}()
 
+	// Limit+1 バイト読み込み、切り捨てを検知する
 	limit := int64(config.MaxInputSize)
 	body, err := io.ReadAll(io.LimitReader(stream, limit+1))
 	if err != nil {

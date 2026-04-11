@@ -19,7 +19,6 @@ const (
 	// AI
 	defaultMapModelName    = "gemini-3-flash-preview"
 	defaultReduceModelName = "gemini-3-flash-preview"
-	defaultLLMTimeout      = 5 * time.Minute
 	defaultMaxConcurrency  = 1
 	defaultRateIntervalSec = 10
 )

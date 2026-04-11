@@ -53,8 +53,8 @@ func NewComposerAdapter(ai gemini.ContentGenerator, pb PromptBuilder, opts ...Co
 
 type ComposerOption func(*ComposerAdapter)
 
-// WithPanelMaxConcurrency は、パネル生成の最大並列数を設定します。
-func WithPanelMaxConcurrency(value int) ComposerOption {
+// WithMaxConcurrency は、最大並列数を設定します。
+func WithMaxConcurrency(value int) ComposerOption {
 	return func(g *ComposerAdapter) {
 		if value > 0 {
 			g.maxConcurrency = value
@@ -62,8 +62,8 @@ func WithPanelMaxConcurrency(value int) ComposerOption {
 	}
 }
 
-// WithPanelRateInterval は、パネル生成のレートリミット間隔を設定します。
-func WithPanelRateInterval(d time.Duration) ComposerOption {
+// WithRateInterval は、レートリミット間隔を設定します。
+func WithRateInterval(d time.Duration) ComposerOption {
 	return func(g *ComposerAdapter) {
 		if d > 0 {
 			g.rateInterval = d

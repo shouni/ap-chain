@@ -51,8 +51,8 @@ func buildComposer(ctx context.Context, appCtx *app.Container) (*runner.ComposeR
 		return nil, fmt.Errorf("PromptAdapterの初期化に失敗しました: %w", err)
 	}
 	opts := []adapters.ComposerOption{
-		adapters.WithPanelMaxConcurrency(appCtx.Config.MaxConcurrency),
-		adapters.WithPanelRateInterval(appCtx.Config.RateInterval),
+		adapters.WithMaxConcurrency(appCtx.Config.MaxConcurrency),
+		adapters.WithRateInterval(appCtx.Config.RateInterval),
 	}
 	composerAdapter, err := adapters.NewComposerAdapter(
 		ai,

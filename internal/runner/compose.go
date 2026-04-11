@@ -49,11 +49,11 @@ func (r *ComposeRunner) Run(ctx context.Context, urls []domain.URLResult) (strin
 	if len(urls) == 0 {
 		return "", errors.New("urls is empty")
 	}
-	return r.cleanAndStructureText(ctx, urls)
+	return r.composeAndStructureText(ctx, urls)
 }
 
-// CleanAndStructureText は、MapReduce処理を実行し、最終的なクリーンアップと構造化を行います。
-func (r *ComposeRunner) cleanAndStructureText(ctx context.Context, results []domain.URLResult) (string, error) {
+// ComposeAndStructureText は、MapReduce処理を実行し、最終的な構成と構造化を行います。
+func (r *ComposeRunner) composeAndStructureText(ctx context.Context, results []domain.URLResult) (string, error) {
 	// 1. MapフェーズのためのURL単位のテキスト分割
 	allSegments := make([]domain.Segment, 0, len(results)*2)
 	for _, res := range results {

@@ -90,6 +90,7 @@ func (p *Pipeline) sendNotify(ctx context.Context, notifyFn func(context.Context
 		return
 	}
 
+	// 親コンテキストがキャンセルされていても、通知のために独立した時間を確保します。
 	nCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer cancel()
 

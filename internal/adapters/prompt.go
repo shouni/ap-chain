@@ -8,26 +8,28 @@ import (
 	"ap-chain/assets"
 )
 
+// MapTemplateData は、Mapフェーズ（個別セグメントの要約）で使用するテンプレートデータです。
 type MapTemplateData struct {
 	SegmentText string
 	SourceURL   string
 }
 
+// ReduceTemplateData は、Reduceフェーズ（要約の統合と構造化）で使用するテンプレートデータです。
 type ReduceTemplateData struct {
 	CombinedText string
 }
 
-// promptBuilder は、フォーマット済みのプロンプトを作成するためのインターフェース
+// promptBuilder は、テンプレートに基づいてプロンプト文字列を構築するための内部インターフェースです。
 type promptBuilder interface {
 	Build(mode string, data any) (string, error)
 }
 
-// PromptAdapter は、さまざまなモードとデータに基づいてプロンプトを生成する役割を担います。
+// PromptAdapter は、AP Chain の各処理フェーズに適した AI プロンプトを生成するアダプターです。
 type PromptAdapter struct {
 	builder promptBuilder
 }
 
-// NewPromptAdapter は動的に読み込んだテンプレートを使用して Builder を構築します。
+// NewPromptAdapter は、埋め込まれたアセットからテンプレートを読み込み、アダプターを初期化します。
 func NewPromptAdapter() (*PromptAdapter, error) {
 	templates, err := assets.LoadPrompts()
 	if err != nil {
@@ -36,7 +38,7 @@ func NewPromptAdapter() (*PromptAdapter, error) {
 
 	builder, err := prompts.NewBuilder(templates)
 	if err != nil {
-		return nil, fmt.Errorf("レビュービルダーの構築に失敗: %w", err)
+		return nil, fmt.Errorf("プロンプトビルダーの構築に失敗: %w", err)
 	}
 
 	return &PromptAdapter{
@@ -44,7 +46,7 @@ func NewPromptAdapter() (*PromptAdapter, error) {
 	}, nil
 }
 
-// GenerateMap はコードレビューのMarkdownレポートを生成します。
+// GenerateMap は、個別セグメントから中間要約を生成するための Map プロンプトを構築します。
 func (p *PromptAdapter) GenerateMap(text, url string) (string, error) {
 	data := MapTemplateData{
 		SegmentText: text,
@@ -52,19 +54,19 @@ func (p *PromptAdapter) GenerateMap(text, url string) (string, error) {
 	}
 	prompt, err := p.builder.Build("map", data)
 	if err != nil {
-		return "", fmt.Errorf("マップテンプレートの実行に失敗: %w", err)
+		return "", fmt.Errorf("Mapテンプレートの構築に失敗: %w", err)
 	}
 	return prompt, nil
 }
 
-// GenerateReduce はコードレビューのMarkdownレポートを生成します。
+// GenerateReduce は、中間要約群を統合し、最終的な構造化文書を作成するための Reduce プロンプトを構築します。
 func (p *PromptAdapter) GenerateReduce(text string) (string, error) {
 	data := ReduceTemplateData{
 		CombinedText: text,
 	}
 	prompt, err := p.builder.Build("reduce", data)
 	if err != nil {
-		return "", fmt.Errorf("マップテンプレートの実行に失敗: %w", err)
+		return "", fmt.Errorf("Reduceテンプレートの構築に失敗: %w", err)
 	}
 	return prompt, nil
 }

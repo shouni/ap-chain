@@ -36,9 +36,12 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 	summaries := make([]string, total)
 	errChan := make(chan error, 1)
 
+	// エラー時に他の処理を即座に停止するためのコンテキスト
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, e.concurrency)
-
 	limiter := rate.NewLimiter(rate.Every(defaultLLMRateLimit), 1)
 
 	slog.InfoContext(ctx, "セグメントの並列処理を開始します",
@@ -55,33 +58,34 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 		default:
 		}
 
+		// 1. メインループでレートリミットを待機（ゴルーチンの大量生成を防ぐ）
+		if err := limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
+
+		// 2. セマフォを取得して同時実行数を制限
+		select {
+		case sem <- struct{}{}:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+
 		wg.Add(1)
 		go func(index int, s Segment) {
+			defer func() { <-sem }()
 			defer wg.Done()
 
-			// 1. レートリミットの待機（セマフォ取得前に行うことでスロットを無駄に占有しない）
-			if err := limiter.Wait(ctx); err != nil {
-				return
-			}
-
-			// 2. セマフォ（同時実行数）の取得
-			select {
-			case sem <- struct{}{}:
-			case <-ctx.Done():
-				return
-			}
-			defer func() { <-sem }()
-
-			// 3. LLM 処理の実行
 			prompt, err := e.promptBuilder.GenerateMap(s.Text, s.URL)
 			if err != nil {
 				e.sendError(errChan, fmt.Errorf("セグメント %d 処理失敗: %w", index+1, err))
+				cancel() // 他のゴルーチンをキャンセル
 				return
 			}
 
 			response, err := e.aiClient.GenerateContent(ctx, model, prompt)
 			if err != nil {
 				e.sendError(errChan, fmt.Errorf("セグメント %d (URL: %s) 処理失敗: %w", index+1, s.URL, err))
+				cancel() // 他のゴルーチンをキャンセル
 				return
 			}
 

@@ -7,14 +7,11 @@ import (
 	"fmt"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/shouni/go-remote-io/remoteio"
 
 	"ap-chain/internal/domain"
 )
-
-const defaultSignedURLExpiration = 10 * time.Minute
 
 // mdRunner は Markdown 変換処理を実行するコアサービスを抽象化します。
 type mdRunner interface {

@@ -6,6 +6,12 @@ type URLResult struct {
 	Content string // 抽出された記事の本文
 }
 
+// Segment は、URLから抽出されたセグメントを表します
+type Segment struct {
+	Text string
+	URL  string
+}
+
 // PublishedFile は公開されたファイルの情報です
 type PublishedFile struct {
 	StorageURI string

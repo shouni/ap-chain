@@ -30,7 +30,7 @@ func NewLLMConcurrentExecutor(ai gemini.ContentGenerator, pb domain.PromptBuilde
 }
 
 // ExecuteMap は Mapフェーズの並列処理を効率的に実行します。
-func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, allSegments []domain.URLResult) ([]string, error) {
+func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error) {
 	total := len(allSegments)
 	summaries := make([]string, total)
 	errChan := make(chan error, 1)
@@ -49,13 +49,13 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 
 Loop:
 	for i, seg := range allSegments {
-		// 1. 事前のエラーチェック (Blocker 修正)
+		// 1. 事前のエラーチェック
 		// return ではなく break することで、下部の wg.Wait() を必ず通過させ、リークを防ぐ
 		if ctx.Err() != nil {
 			break Loop
 		}
 
-		// 2. メインループでレートリミットを待機
+		// 2. APIのレート制限（RPM等）を考慮し、Goroutineの起動ペース自体を制御する
 		if err := limiter.Wait(ctx); err != nil {
 			e.sendError(errChan, err)
 			cancel()
@@ -72,11 +72,11 @@ Loop:
 		}
 
 		wg.Add(1)
-		go func(index int, s domain.URLResult) {
+		go func(index int, s domain.Segment) {
 			defer func() { <-sem }()
 			defer wg.Done()
 
-			prompt, err := e.promptBuilder.GenerateMap(s.Content, s.URL)
+			prompt, err := e.promptBuilder.GenerateMap(s.Text, s.URL)
 			if err != nil {
 				e.sendError(errChan, fmt.Errorf("セグメント %d 処理失敗: %w", index+1, err))
 				cancel()

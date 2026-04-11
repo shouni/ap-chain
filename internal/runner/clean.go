@@ -20,7 +20,7 @@ const (
 )
 
 type LLMExecutor interface {
-	ExecuteMap(ctx context.Context, model string, allSegments []domain.URLResult) ([]string, error)
+	ExecuteMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error)
 	ExecuteReduce(ctx context.Context, model, combinedText string) (string, error)
 }
 
@@ -55,11 +55,11 @@ func (r *CleanRunner) Run(ctx context.Context, urls []domain.URLResult) (string,
 // CleanAndStructureText は、MapReduce処理を実行し、最終的なクリーンアップと構造化を行います。
 func (r *CleanRunner) cleanAndStructureText(ctx context.Context, results []domain.URLResult) (string, error) {
 	// 1. MapフェーズのためのURL単位のテキスト分割
-	allSegments := make([]domain.URLResult, 0, len(results)*2)
+	allSegments := make([]domain.Segment, 0, len(results)*2)
 	for _, res := range results {
 		segments := segmentText(ctx, res.Content, maxSegmentChars)
 		for _, segText := range segments {
-			allSegments = append(allSegments, domain.URLResult{Content: segText, URL: res.URL})
+			allSegments = append(allSegments, domain.Segment{Text: segText, URL: res.URL})
 		}
 	}
 
@@ -98,16 +98,20 @@ func segmentText(ctx context.Context, text string, maxChars int) []string {
 	var segments []string
 
 	for len(text) > 0 {
-		if utf8.RuneCountInString(text) <= maxChars {
-			segments = append(segments, text)
-			break
+		// 先頭から maxChars ルーン分のバイトインデックスを特定
+		byteIdx := 0
+		runeCount := 0
+		for i := 0; i < len(text) && runeCount < maxChars; {
+			_, size := utf8.DecodeRuneInString(text[i:])
+			i += size
+			byteIdx = i
+			runeCount++
 		}
 
-		// maxChars ルーン目のバイトインデックスを特定
-		byteIdx := 0
-		for i := 0; i < maxChars; i++ {
-			_, size := utf8.DecodeRuneInString(text[byteIdx:])
-			byteIdx += size
+		// 残りのテキストが maxChars ルーン以下の場合
+		if runeCount <= maxChars && byteIdx == len(text) {
+			segments = append(segments, text)
+			break
 		}
 
 		candidate := text[:byteIdx]

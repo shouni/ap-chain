@@ -19,41 +19,40 @@ const (
 	maxSegmentChars = 20000
 )
 
-type LLMExecutor interface {
-	ExecuteMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error)
-	ExecuteReduce(ctx context.Context, model, combinedText string) (string, error)
+type Composer interface {
+	RunMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error)
+	RunReduce(ctx context.Context, model, combinedText string) (string, error)
 }
 
-type CleanRunner struct {
+type ComposeRunner struct {
 	cfg      *config.Config
-	executor LLMExecutor
+	composer Composer
 }
 
-// NewCleanRunner は CleanRunner の新しいインスタンスを作成します。
-func NewCleanRunner(cfg *config.Config, executor LLMExecutor) (*CleanRunner, error) {
+// NewComposeRunner は ComposeRunner の新しいインスタンスを作成します。
+func NewComposeRunner(cfg *config.Config, composer Composer) (*ComposeRunner, error) {
 	if cfg == nil {
 		return nil, errors.New("config cannot be nil")
 	}
-	if executor == nil {
-		return nil, errors.New("executor cannot be nil")
+	if composer == nil {
+		return nil, errors.New("composer cannot be nil")
 	}
-
-	return &CleanRunner{
+	return &ComposeRunner{
 		cfg:      cfg,
-		executor: executor,
+		composer: composer,
 	}, nil
 }
 
 // Run は、取得したURL結果のリストに対してクリーンアップと構造化処理を実行者に委譲します。
-func (r *CleanRunner) Run(ctx context.Context, urls []domain.URLResult) (string, error) {
+func (r *ComposeRunner) Run(ctx context.Context, urls []domain.URLResult) (string, error) {
 	if len(urls) == 0 {
 		return "", errors.New("urls is empty")
 	}
-	return r.cleanAndStructureText(ctx, urls)
+	return r.composeAndStructureText(ctx, urls)
 }
 
-// CleanAndStructureText は、MapReduce処理を実行し、最終的なクリーンアップと構造化を行います。
-func (r *CleanRunner) cleanAndStructureText(ctx context.Context, results []domain.URLResult) (string, error) {
+// ComposeAndStructureText は、MapReduce処理を実行し、最終的な構成と構造化を行います。
+func (r *ComposeRunner) composeAndStructureText(ctx context.Context, results []domain.URLResult) (string, error) {
 	// 1. MapフェーズのためのURL単位のテキスト分割
 	allSegments := make([]domain.Segment, 0, len(results)*2)
 	for _, res := range results {
@@ -68,7 +67,7 @@ func (r *CleanRunner) cleanAndStructureText(ctx context.Context, results []domai
 		slog.Int("total_segments", len(allSegments)))
 
 	// 2. Mapフェーズの実行（Executorに委譲）
-	intermediateSummaries, err := r.executor.ExecuteMap(ctx, r.cfg.MapModel, allSegments)
+	intermediateSummaries, err := r.composer.RunMap(ctx, r.cfg.MapModel, allSegments)
 	if err != nil {
 		return "", fmt.Errorf("セグメント処理（Mapフェーズ）に失敗しました: %w", err)
 	}
@@ -80,7 +79,7 @@ func (r *CleanRunner) cleanAndStructureText(ctx context.Context, results []domai
 	// 4. Reduceフェーズ：最終的な統合と構造化
 	slog.InfoContext(ctx, "Final structuring started (Reduce phase)")
 
-	finalResponseText, err := r.executor.ExecuteReduce(ctx, r.cfg.ReduceModel, finalCombinedText)
+	finalResponseText, err := r.composer.RunReduce(ctx, r.cfg.ReduceModel, finalCombinedText)
 	if err != nil {
 		return "", fmt.Errorf("LLM最終構造化処理（Reduceフェーズ）に失敗しました: %w", err)
 	}

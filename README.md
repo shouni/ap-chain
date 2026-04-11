@@ -84,12 +84,12 @@ sequenceDiagram
     participant CLI as Cobra CLI
     participant Builder as builder.BuildContainer
     participant Pipeline as Pipeline
-    participant Fetch as FetchRunner
+    participant Collector as Collector
     participant Source as Input File / GCS
     participant Scraper as Web Scraper
-    participant Clean as CleanRunner
+    participant Composer as Composer
     participant LLM as LLM Executor
-    participant Publish as PublishRunner
+    participant Publisher as Publisher
     participant Storage as Local / GCS
     participant Slack as Slack Notifier
 
@@ -98,29 +98,29 @@ sequenceDiagram
     Builder-->>CLI: app.Container
     CLI->>Pipeline: Execute(ctx)
 
-    Pipeline->>Fetch: Run(ctx, input)
-    Fetch->>Source: Open(input source)
-    Source-->>Fetch: URL list content
-    Fetch->>Fetch: Parse and validate URLs
-    Fetch->>Scraper: Run(ctx, urls)
-    Scraper-->>Fetch: scraped contents
-    Fetch-->>Pipeline: []URLResult
+    Pipeline->>Collector: Run(ctx, input)
+    Collector->>Source: Open(input source)
+    Source-->>Collector: URL list content
+    Collector->>Collector: Parse and validate URLs
+    Collector->>Scraper: Run(ctx, urls)
+    Scraper-->>Collector: scraped contents
+    Collector-->>Pipeline: []URLResult
 
-    Pipeline->>Clean: Run(ctx, urlResults)
-    Clean->>Clean: Segment content per URL
-    Clean->>LLM: ExecuteMap(model, segments)
-    LLM-->>Clean: intermediate summaries
-    Clean->>LLM: ExecuteReduce(model, combined summaries)
-    LLM-->>Clean: final markdown
-    Clean-->>Pipeline: structured content
+    Pipeline->>Composer: Run(ctx, urlResults)
+    Composer->>Composer: Segment content per URL
+    Composer->>LLM: ExecuteMap(model, segments)
+    LLM-->>Composer: intermediate summaries
+    Composer->>LLM: ExecuteReduce(model, combined summaries)
+    LLM-->>Composer: final markdown
+    Composer-->>Pipeline: structured content
 
-    Pipeline->>Publish: Run(ctx, output, markdown)
-    Publish->>Storage: Write markdown
-    Publish->>Publish: Convert Markdown to HTML
-    Publish->>Storage: Write HTML
-    Publish->>Storage: Generate signed URLs
-    Storage-->>Publish: markdown/html URLs
-    Publish-->>Pipeline: PublishResult
+    Pipeline->>Publisher: Run(ctx, output, markdown)
+    Publisher->>Storage: Write markdown
+    Publisher->>Publisher: Convert Markdown to HTML
+    Publisher->>Storage: Write HTML
+    Publisher->>Storage: Generate signed URLs
+    Storage-->>Publisher: markdown/html URLs
+    Publisher-->>Pipeline: PublishResult
 
     Pipeline->>Slack: NotifySuccess(html URI, signed URL, count)
     Slack-->>Pipeline: notification result

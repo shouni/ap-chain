@@ -13,10 +13,12 @@ import (
 // generateCmd は、メインのCLIコマンド定義です。
 var generateCmd = &cobra.Command{
 	Use:   "generate",
-	Short: "Webコンテンツの取得とAIクリーンアップを実行します。",
-	Long: `
-Webコンテンツの取得とAIクリーンアップを実行します。
-`,
+	Short: "複数URLからの情報収集とAIによる構造化レポートの生成",
+	Long: `入力されたURLリストからコンテンツを収集し、LLMパイプラインで構造化文書を生成します。
+ワークフロー:
+- Collector: Webコンテンツの並列スクレイピングとメインテキストの抽出
+- Composer: MapReduce処理による情報の統合・重複排除・ソース明示
+- Publisher: Markdown/HTML保存、署名付きURL発行`,
 	RunE: generateCommand,
 }
 

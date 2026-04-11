@@ -7,10 +7,10 @@ import (
 )
 
 type (
-	Fetcher interface {
+	Collector interface {
 		Run(ctx context.Context, sourceURI string) ([]domain.URLResult, error)
 	}
-	Cleaner interface {
+	Composer interface {
 		Run(ctx context.Context, results []domain.URLResult) (string, error)
 	}
 	Publisher interface {

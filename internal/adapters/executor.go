@@ -13,7 +13,6 @@ import (
 	"ap-chain/internal/domain"
 )
 
-// defaultLLMRateLimit は、レートリミットを制御するための間隔です。
 const defaultLLMRateLimit = 20 * time.Second
 
 type LLMConcurrentExecutor struct {
@@ -48,30 +47,28 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 		slog.Int("total_segments", total),
 		slog.Int("max_parallel", e.concurrency))
 
+Loop:
 	for i, seg := range allSegments {
-		// 事前のエラーチェック
-		select {
-		case err := <-errChan:
-			return nil, err
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
+		// 1. 事前のエラーチェック (Blocker 修正)
+		// return ではなく break することで、下部の wg.Wait() を必ず通過させ、リークを防ぐ
+		if ctx.Err() != nil {
+			break Loop
 		}
 
-		// 1. メインループでレートリミットを待機（ゴルーチンの大量生成を防ぐ）
+		// 2. メインループでレートリミットを待機
 		if err := limiter.Wait(ctx); err != nil {
 			e.sendError(errChan, err)
 			cancel()
-			break
+			break Loop
 		}
 
-		// 2. セマフォを取得して同時実行数を制限
+		// 3. セマフォを取得
 		select {
 		case sem <- struct{}{}:
 		case <-ctx.Done():
 			e.sendError(errChan, ctx.Err())
 			cancel()
-			break
+			break Loop
 		}
 
 		wg.Add(1)
@@ -82,14 +79,14 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 			prompt, err := e.promptBuilder.GenerateMap(s.Content, s.URL)
 			if err != nil {
 				e.sendError(errChan, fmt.Errorf("セグメント %d 処理失敗: %w", index+1, err))
-				cancel() // 他のゴルーチンをキャンセル
+				cancel()
 				return
 			}
 
 			response, err := e.aiClient.GenerateContent(ctx, model, prompt)
 			if err != nil {
 				e.sendError(errChan, fmt.Errorf("セグメント %d (URL: %s) 処理失敗: %w", index+1, s.URL, err))
-				cancel() // 他のゴルーチンをキャンセル
+				cancel()
 				return
 			}
 
@@ -101,27 +98,31 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 		}(i, seg)
 	}
 
+	// すべての起動済み Goroutine が完了（またはキャンセル検知で終了）するのを待機
 	wg.Wait()
 
+	// 4. 最終的なエラー評価
 	select {
 	case err := <-errChan:
 		return nil, err
 	default:
+		// errChan が空でもコンテキストがキャンセルされていればそのエラーを返す
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
 	}
 
 	return summaries, nil
 }
 
-// sendError は安全に最初のエラーをチャネルに送信します。
 func (e *LLMConcurrentExecutor) sendError(ch chan error, err error) {
 	select {
 	case ch <- err:
 	default:
-		// すでにエラーが送信済みの場合は何もしない
 	}
 }
 
-// ExecuteReduce は ReduceフェーズのAPI呼び出しを実行します。
+// ExecuteReduce は変更なし
 func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, model, combinedText string) (string, error) {
 	slog.InfoContext(ctx, "最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", model))
 

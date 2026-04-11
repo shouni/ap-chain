@@ -31,6 +31,9 @@ type CleanRunner struct {
 
 // NewCleanRunner は CleanRunner の新しいインスタンスを作成します。
 func NewCleanRunner(cfg *config.Config, executor LLMExecutor) (*CleanRunner, error) {
+	if cfg == nil {
+		return nil, errors.New("config cannot be nil")
+	}
 	if executor == nil {
 		return nil, errors.New("executor cannot be nil")
 	}
@@ -46,13 +49,7 @@ func (r *CleanRunner) Run(ctx context.Context, urls []domain.URLResult) (string,
 	if len(urls) == 0 {
 		return "", errors.New("urls is empty")
 	}
-
-	result, err := r.cleanAndStructureText(ctx, urls)
-	if err != nil {
-		return "", err
-	}
-
-	return result, nil
+	return r.cleanAndStructureText(ctx, urls)
 }
 
 // CleanAndStructureText は、MapReduce処理を実行し、最終的なクリーンアップと構造化を行います。

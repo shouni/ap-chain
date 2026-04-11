@@ -19,8 +19,16 @@ const (
 	maxSegmentChars = 20000
 )
 
+// Composer は、LLMを用いて複数の情報ソースを統合・構成するインターフェースです。
+// MapReduceモデルを採用しており、個別のコンテンツ要約（Map）と
+// それらを統合した最終レポートの構築（Reduce）を担います。
 type Composer interface {
+	// RunMap は、分割された各セグメントに対して並列に中間処理（要約等）を実行します。
+	// 各セグメントから抽出された中間情報のスライスを返します。
 	RunMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error)
+
+	// RunReduce は、RunMap で生成された中間情報を統合し、
+	// 指定されたモデルを使用して最終的な構造化文書（レポート）を書き上げます。
 	RunReduce(ctx context.Context, model, combinedText string) (string, error)
 }
 

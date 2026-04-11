@@ -15,17 +15,18 @@ type Container struct {
 	Config *config.Config
 	// I/O and Storage
 	RemoteIO *RemoteIO
-	// External Adapters
-	HTTPClient httpkit.Requester
 	// Business Logic
 	Pipeline domain.Pipeline
+	// External Adapters
+	HTTPClient httpkit.Requester
+	Notifier   domain.Notifier
 }
 
 // RemoteIO は外部ストレージ操作に関するコンポーネントをまとめます。
 type RemoteIO struct {
 	Factory remoteio.ReadWriteFactory
-	Reader  remoteio.Reader
 	Writer  remoteio.Writer
+	Signer  remoteio.URLSigner
 }
 
 // Close は、RemoteIO が保持する Factory などの内部リソースを解放します。

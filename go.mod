@@ -6,11 +6,13 @@ require (
 	github.com/shouni/clibase v1.0.3
 	github.com/shouni/go-gemini-client v1.2.4
 	github.com/shouni/go-http-kit v1.4.0
+	github.com/shouni/go-notifier v1.2.1
 	github.com/shouni/go-prompt-kit v1.0.4
 	github.com/shouni/go-remote-io v1.3.2
 	github.com/shouni/go-utils v1.0.20
 	github.com/shouni/go-web-exact/v2 v2.2.0
 	github.com/shouni/go-web-reader v1.0.2
+	github.com/shouni/netarmor v1.0.2
 	github.com/spf13/cobra v1.10.2
 )
 
@@ -66,8 +68,8 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/shouni/netarmor v1.0.2 // indirect
-	github.com/spf13/pflag v1.0.9 // indirect
+	github.com/slack-go/slack v0.19.0 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	github.com/yuin/goldmark v1.8.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect

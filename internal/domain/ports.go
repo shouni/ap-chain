@@ -25,7 +25,7 @@ type CleanRunner interface {
 
 // PublishRunner は、生成されたスクリプトの公開処理を実行する責務を持つインターフェースです。
 type PublishRunner interface {
-	Run(ctx context.Context, storageURI, content string) error
+	Run(ctx context.Context, storageURI, content string) (*PublishResult, error)
 }
 
 // ContentReader は、指定されたURIからコンテンツを取得するためのインターフェースです。
@@ -42,4 +42,10 @@ type Cleaner interface {
 type PromptBuilder interface {
 	GenerateMap(text, url string) (string, error)
 	GenerateReduce(text string) (string, error)
+}
+
+// Notifier は、処理の成功または失敗を通知する責務を定義します。
+type Notifier interface {
+	NotifySuccess(ctx context.Context, outputURI, publicURL string, sourceCount int) error
+	NotifyFailure(ctx context.Context, err error) error
 }

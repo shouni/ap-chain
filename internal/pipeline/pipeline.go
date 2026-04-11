@@ -3,7 +3,9 @@ package pipeline
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
+	"time"
 
 	"github.com/shouni/go-web-exact/v2/ports"
 
@@ -17,6 +19,7 @@ type Pipeline struct {
 	fetcher   domain.FetchRunner
 	cleaner   domain.CleanRunner
 	publisher domain.PublishRunner
+	notifier  domain.Notifier
 }
 
 // NewPipeline は、Pipeline を生成します。
@@ -25,31 +28,64 @@ func NewPipeline(
 	fetcher domain.FetchRunner,
 	cleaner domain.CleanRunner,
 	publisher domain.PublishRunner,
+	notifier domain.Notifier,
 ) *Pipeline {
 	return &Pipeline{
 		cfg:       cfg,
 		fetcher:   fetcher,
 		cleaner:   cleaner,
 		publisher: publisher,
+		notifier:  notifier,
 	}
 }
 
 // Execute は、すべての依存関係を構築し実行します。
-func (p *Pipeline) Execute(ctx context.Context) error {
-	URLResult, err := p.fetch(ctx)
+func (p *Pipeline) Execute(ctx context.Context) (err error) {
+	var urlResults []ports.URLResult
+
+	// defer による一括エラー通知
+	defer func() {
+		if err != nil && p.notifier != nil {
+			// 通知用にキャンセルされていない新しいコンテキストを作成
+			notifyCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+			defer cancel()
+			if notifyErr := p.notifier.NotifyFailure(notifyCtx, err); notifyErr != nil {
+				// 通知自体の失敗はログに記録し、メインの err は維持する
+				slog.Error("failed to send failure notification", "error", notifyErr)
+			}
+		}
+	}()
+
+	// 1. Fetch
+	urlResults, err = p.fetch(ctx)
+	if err != nil {
+		return err // defer 内の err にキャプチャされる
+	}
+
+	// 2. Clean (MapReduce)
+	var content string
+	content, err = p.clean(ctx, urlResults) // := ではなく = を使用してシャドウイングを防止
 	if err != nil {
 		return err
 	}
-	content, err := p.clean(ctx, URLResult)
-	if err != nil {
-		return err
-	}
+
 	if strings.TrimSpace(content) == "" {
-		return fmt.Errorf("AIモデルが空のスクリプトを返しました。プロンプトや入力コンテンツに問題がないか確認してください")
+		err = fmt.Errorf("AIモデルが空のコンテンツを返しました")
+		return err
 	}
-	err = p.publish(ctx, content)
+
+	// 3. Publish
+	var result *domain.PublishResult
+	result, err = p.publisher.Run(ctx, p.cfg.OutputFile, content)
 	if err != nil {
 		return err
+	}
+
+	// 4. Success Notification
+	if p.notifier != nil {
+		if notifyErr := p.notifier.NotifySuccess(ctx, result.HTML.StorageURI, result.HTML.PublicURL, len(urlResults)); notifyErr != nil {
+			slog.Error("failed to send success notification", "error", notifyErr)
+		}
 	}
 
 	return nil
@@ -73,17 +109,4 @@ func (p *Pipeline) clean(ctx context.Context, result []ports.URLResult) (string,
 	}
 
 	return content, nil
-}
-
-// publish は、パブリッシュを実行します。
-func (p *Pipeline) publish(
-	ctx context.Context,
-	content string,
-) error {
-	err := p.publisher.Run(ctx, p.cfg.OutputFile, content)
-	if err != nil {
-		return fmt.Errorf("公開処理の実行に失敗しました: %w", err)
-	}
-
-	return nil
 }

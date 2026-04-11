@@ -27,7 +27,7 @@ func buildCollector(ctx context.Context, appCtx *app.Container) (*runner.Collect
 	}
 
 	opts := []scraper.Option{
-		scraper.WithMaxConcurrency(appCtx.Config.MaxConcurrency),
+		scraper.WithMaxConcurrency(appCtx.Config.MaxScraperParallel),
 	}
 	sb, err := scraperBuilder.New(appCtx.HTTPClient, opts)
 	if err != nil {

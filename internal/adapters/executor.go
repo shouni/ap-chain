@@ -38,7 +38,7 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 	eg.SetLimit(e.concurrency)
 
 	// RPM制限のためのリミッター
-	limiter := rate.NewLimiter(rate.Every(defaultLLMRateLimit), e.concurrency)
+	limiter := rate.NewLimiter(rate.Every(defaultLLMRateLimit), 1)
 
 	slog.InfoContext(ctx, "セグメントの並列処理を開始します",
 		slog.Int("total_segments", total),

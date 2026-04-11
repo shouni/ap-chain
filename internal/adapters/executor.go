@@ -1,4 +1,4 @@
-package cleaner
+package adapters
 
 import (
 	"context"
@@ -31,7 +31,7 @@ func NewLLMConcurrentExecutor(ai gemini.ContentGenerator, pb domain.PromptBuilde
 }
 
 // ExecuteMap は Mapフェーズの並列処理を効率的に実行します。
-func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, allSegments []Segment) ([]string, error) {
+func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, allSegments []domain.URLResult) ([]string, error) {
 	total := len(allSegments)
 	summaries := make([]string, total)
 	errChan := make(chan error, 1)
@@ -75,11 +75,11 @@ func (e *LLMConcurrentExecutor) ExecuteMap(ctx context.Context, model string, al
 		}
 
 		wg.Add(1)
-		go func(index int, s Segment) {
+		go func(index int, s domain.URLResult) {
 			defer func() { <-sem }()
 			defer wg.Done()
 
-			prompt, err := e.promptBuilder.GenerateMap(s.Text, s.URL)
+			prompt, err := e.promptBuilder.GenerateMap(s.Content, s.URL)
 			if err != nil {
 				e.sendError(errChan, fmt.Errorf("セグメント %d 処理失敗: %w", index+1, err))
 				cancel() // 他のゴルーチンをキャンセル

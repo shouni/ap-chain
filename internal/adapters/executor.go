@@ -115,14 +115,7 @@ Loop:
 	return summaries, nil
 }
 
-func (e *LLMConcurrentExecutor) sendError(ch chan error, err error) {
-	select {
-	case ch <- err:
-	default:
-	}
-}
-
-// ExecuteReduce は変更なし
+// ExecuteReduce は ReduceフェーズのAPI呼び出しを実行します。
 func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, model, combinedText string) (string, error) {
 	slog.InfoContext(ctx, "最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", model))
 
@@ -139,4 +132,12 @@ func (e *LLMConcurrentExecutor) ExecuteReduce(ctx context.Context, model, combin
 	slog.InfoContext(ctx, "Reduce処理成功", slog.String("model", model))
 
 	return response.Text, nil
+}
+
+// sendError は、エラーをチャネルに送信します。チャネルが満杯の場合、エラーは無視されます。
+func (e *LLMConcurrentExecutor) sendError(ch chan error, err error) {
+	select {
+	case ch <- err:
+	default:
+	}
 }

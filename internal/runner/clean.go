@@ -39,8 +39,8 @@ func NewCleanRunner(cfg *config.Config, executor LLMExecutor) (*CleanRunner, err
 	}
 
 	return &CleanRunner{
-		cfg,
-		executor,
+		cfg:      cfg,
+		executor: executor,
 	}, nil
 }
 
@@ -96,43 +96,38 @@ func (r *CleanRunner) cleanAndStructureText(ctx context.Context, results []domai
 // segmentText は、テキストを最大文字数を超えないように分割します。
 func segmentText(ctx context.Context, text string, maxChars int) []string {
 	var segments []string
-	current := []rune(text)
 
-	for len(current) > 0 {
-		// すでに残りルーン数が上限以下ならそのまま終了
-		if len(current) <= maxChars {
-			segments = append(segments, string(current))
+	for len(text) > 0 {
+		if utf8.RuneCountInString(text) <= maxChars {
+			segments = append(segments, text)
 			break
 		}
 
-		// デフォルトは最大文字数で分割
-		splitIndex := maxChars
-		// candidate は最初の maxChars 文字分を string に戻したもの
-		candidate := string(current[:maxChars])
+		// maxChars ルーン目のバイトインデックスを特定
+		byteIdx := 0
+		for i := 0; i < maxChars; i++ {
+			_, size := utf8.DecodeRuneInString(text[byteIdx:])
+			byteIdx += size
+		}
 
-		// 優先的な区切り文字（改行）をバイト単位で検索
+		candidate := text[:byteIdx]
 		lastByteIdx := strings.LastIndex(candidate, defaultSeparator)
 
+		splitByteIdx := byteIdx
 		if lastByteIdx != -1 {
-			// 重要: バイトインデックスをルーン数に変換する
-			// これにより、マルチバイト文字が混在していても正しい切り出し位置が算出される
 			runeCountBeforeSep := utf8.RuneCountInString(candidate[:lastByteIdx])
-
-			// セグメントが極端に短くなりすぎないよう、半分より後ろで見つかった場合のみ採用
 			if runeCountBeforeSep > maxChars/2 {
-				splitIndex = runeCountBeforeSep + utf8.RuneCountInString(defaultSeparator)
+				splitByteIdx = lastByteIdx + len(defaultSeparator)
 			}
 		}
 
-		// 安全な区切りが見つからなかった（または前の方すぎた）場合
-		if splitIndex == maxChars {
+		if splitByteIdx == byteIdx {
 			slog.WarnContext(ctx, "No suitable separator found in segment. Forced splitting at max chars.",
 				slog.Int("forced_chars", maxChars))
 		}
 
-		// 決定したルーン位置でスライス
-		segments = append(segments, string(current[:splitIndex]))
-		current = current[splitIndex:]
+		segments = append(segments, text[:splitByteIdx])
+		text = text[splitByteIdx:]
 	}
 
 	return segments

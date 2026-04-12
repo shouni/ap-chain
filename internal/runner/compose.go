@@ -8,7 +8,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"ap-chain/internal/config"
 	"ap-chain/internal/domain"
 )
 
@@ -32,22 +31,31 @@ type Composer interface {
 	RunReduce(ctx context.Context, model, combinedText string) (string, error)
 }
 
+// Models は使用するモデルの構成を保持します。
+type Models struct {
+	MapModel    string
+	ReduceModel string
+}
+
 type ComposeRunner struct {
-	cfg      *config.Config
 	composer Composer
+	models   Models
 }
 
 // NewComposeRunner は ComposeRunner の新しいインスタンスを作成します。
-func NewComposeRunner(cfg *config.Config, composer Composer) (*ComposeRunner, error) {
-	if cfg == nil {
-		return nil, errors.New("config cannot be nil")
-	}
+func NewComposeRunner(composer Composer, models Models) (*ComposeRunner, error) {
 	if composer == nil {
 		return nil, errors.New("composer cannot be nil")
 	}
+	if models.MapModel == "" {
+		return nil, errors.New("MapModel cannot be empty")
+	}
+	if models.ReduceModel == "" {
+		return nil, errors.New("ReduceModel cannot be empty")
+	}
 	return &ComposeRunner{
-		cfg:      cfg,
 		composer: composer,
+		models:   models,
 	}, nil
 }
 
@@ -75,7 +83,7 @@ func (r *ComposeRunner) composeAndStructureText(ctx context.Context, results []d
 		slog.Int("total_segments", len(allSegments)))
 
 	// 2. Mapフェーズの実行（Executorに委譲）
-	intermediateSummaries, err := r.composer.RunMap(ctx, r.cfg.MapModel, allSegments)
+	intermediateSummaries, err := r.composer.RunMap(ctx, r.models.MapModel, allSegments)
 	if err != nil {
 		return "", fmt.Errorf("セグメント処理（Mapフェーズ）に失敗しました: %w", err)
 	}
@@ -87,7 +95,7 @@ func (r *ComposeRunner) composeAndStructureText(ctx context.Context, results []d
 	// 4. Reduceフェーズ：最終的な統合と構造化
 	slog.InfoContext(ctx, "Final structuring started (Reduce phase)")
 
-	finalResponseText, err := r.composer.RunReduce(ctx, r.cfg.ReduceModel, finalCombinedText)
+	finalResponseText, err := r.composer.RunReduce(ctx, r.models.ReduceModel, finalCombinedText)
 	if err != nil {
 		return "", fmt.Errorf("LLM最終構造化処理（Reduceフェーズ）に失敗しました: %w", err)
 	}

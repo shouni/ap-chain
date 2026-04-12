@@ -47,6 +47,12 @@ func NewComposeRunner(composer Composer, models Models) (*ComposeRunner, error) 
 	if composer == nil {
 		return nil, errors.New("composer cannot be nil")
 	}
+	if models.MapModel == "" {
+		return nil, errors.New("MapModel cannot be empty")
+	}
+	if models.ReduceModel == "" {
+		return nil, errors.New("ReduceModel cannot be empty")
+	}
 	return &ComposeRunner{
 		composer: composer,
 		models:   models,

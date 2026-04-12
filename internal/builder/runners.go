@@ -63,7 +63,11 @@ func buildComposer(ctx context.Context, appCtx *app.Container) (*runner.ComposeR
 		return nil, fmt.Errorf("Composer Adapterの初期化に失敗しました: %w", err)
 	}
 
-	composer, err := runner.NewComposeRunner(appCtx.Config, composerAdapter)
+	models := runner.Models{
+		MapModel:    appCtx.Config.MapModel,
+		ReduceModel: appCtx.Config.ReduceModel,
+	}
+	composer, err := runner.NewComposeRunner(composerAdapter, models)
 	if err != nil {
 		return nil, fmt.Errorf("Composerの初期化に失敗しました: %w", err)
 	}

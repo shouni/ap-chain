@@ -3,6 +3,7 @@ package builder
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	mdBuilder "github.com/shouni/go-prompt-kit/md/builder"
 	"github.com/shouni/go-remote-io/remoteio"
@@ -17,6 +18,14 @@ import (
 
 // buildCollector は、CollectRunner のインスタンスを構築して返します。
 func buildCollector(ctx context.Context, appCtx *app.Container) (*runner.CollectRunner, error) {
+	var err error
+	defer func() {
+		if err != nil {
+			if closeErr := appCtx.RemoteIO.Factory.Close(); closeErr != nil {
+				slog.Warn("failed to close GCS factory during cleanup", "error", closeErr)
+			}
+		}
+	}()
 	contentReader, err := reader.New(
 		reader.WithGCSFactory(func(ctx context.Context) (remoteio.ReadWriteFactory, error) {
 			return appCtx.RemoteIO.Factory, nil

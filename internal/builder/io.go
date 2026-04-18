@@ -1,41 +1,30 @@
 package builder
 
 import (
-	"context"
 	"fmt"
-	"log/slog"
 
-	"github.com/shouni/go-remote-io/remoteio/gcs"
+	"github.com/shouni/go-remote-io/remoteio"
 
 	"ap-chain/internal/app"
 )
 
-// buildRemoteIO は、GCS ベースの I/O コンポーネントを初期化します。
-func buildRemoteIO(ctx context.Context) (*app.RemoteIO, error) {
-	factory, err := gcs.New(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GCS factory: %w", err)
+// buildRemoteIO は、I/O コンポーネントを初期化します。
+func buildRemoteIO(storage remoteio.IOFactory) (*app.RemoteIO, error) {
+	if storage == nil {
+		return nil, fmt.Errorf("storage factory cannot be nil")
 	}
 
-	defer func() {
-		if err != nil {
-			if closeErr := factory.Close(); closeErr != nil {
-				slog.Warn("failed to close GCS factory during cleanup", "error", closeErr)
-			}
-		}
-	}()
-
-	w, err := factory.Writer()
+	w, err := storage.Writer()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create output writer: %w", err)
 	}
-	s, err := factory.URLSigner()
+	s, err := storage.URLSigner()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create URL signer: %w", err)
 	}
 
 	return &app.RemoteIO{
-		Factory: factory,
+		Factory: storage,
 		Writer:  w,
 		Signer:  s,
 	}, nil

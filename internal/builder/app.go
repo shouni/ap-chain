@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	"github.com/shouni/go-http-kit/httpkit"
+	"github.com/shouni/go-remote-io/remoteio/gcs"
 
 	"ap-chain/internal/adapters"
 	"ap-chain/internal/app"
@@ -26,15 +27,20 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 		}
 	}()
 
-	rio, err := buildRemoteIO(ctx)
+	// 1. I/O Infrastructure (GCS)
+	storage, err := gcs.New(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GCS factory: %w", err)
+	}
+	resources = append(resources, storage)
+	rio, err := buildRemoteIO(storage)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize IO components: %w", err)
 	}
-	resources = append(resources, rio)
 
 	httpClient := httpkit.New(cfg.HTTPTimeout)
 
-	// 4. Slack Adapter
+	// 2. Slack Adapter
 	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize Slack adapter: %w", err)
@@ -47,6 +53,7 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 		Notifier:   slack,
 	}
 
+	// 3. Pipeline (Core Logic)
 	p, err := buildPipeline(ctx, appCtx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build pipeline: %w", err)

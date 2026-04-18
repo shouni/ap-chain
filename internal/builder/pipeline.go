@@ -26,7 +26,6 @@ func buildPipeline(ctx context.Context, appCtx *app.Container) (domain.Pipeline,
 		return nil, fmt.Errorf("Publisherの初期化に失敗しました: %w", err)
 	}
 
-	// pipeline.New に新しい命名のインスタンスを注入
 	p := pipeline.New(collector, composer, publisher, appCtx.Notifier)
 
 	return p, nil

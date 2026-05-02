@@ -14,7 +14,7 @@ func buildRemoteIO(storage remoteio.IOFactory) (*app.RemoteIO, error) {
 		return nil, fmt.Errorf("storage factory cannot be nil")
 	}
 
-	w, err := storage.Writer()
+	w, err := storage.OutputWriter()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create output writer: %w", err)
 	}

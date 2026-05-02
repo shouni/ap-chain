@@ -18,7 +18,7 @@ import (
 // buildCollector は、CollectRunner のインスタンスを構築して返します。
 func buildCollector(ctx context.Context, appCtx *app.Container) (*runner.CollectRunner, error) {
 	contentReader, err := reader.New(
-		reader.WithGCSFactory(func(ctx context.Context) (remoteio.ReadWriteFactory, error) {
+		reader.WithGCSFactory(func(ctx context.Context) (remoteio.IOFactory, error) {
 			return appCtx.RemoteIO.Factory, nil
 		}),
 	)

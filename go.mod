@@ -4,15 +4,15 @@ go 1.26
 
 require (
 	github.com/shouni/clibase v1.0.3
-	github.com/shouni/go-gemini-client v1.2.5
-	github.com/shouni/go-http-kit v1.4.0
-	github.com/shouni/go-notifier v1.2.1
+	github.com/shouni/go-gemini-client v1.2.8
+	github.com/shouni/go-http-kit v1.4.1
+	github.com/shouni/go-notifier v1.2.2
 	github.com/shouni/go-prompt-kit v1.0.4
-	github.com/shouni/go-remote-io v1.3.2
+	github.com/shouni/go-remote-io v1.3.3
 	github.com/shouni/go-utils v1.0.20
-	github.com/shouni/go-web-exact/v2 v2.2.0
-	github.com/shouni/go-web-reader v1.0.2
-	github.com/shouni/netarmor v1.0.2
+	github.com/shouni/go-web-exact/v2 v2.2.1
+	github.com/shouni/go-web-reader v1.0.3
+	github.com/shouni/netarmor v1.0.3
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/sync v0.20.0
 	golang.org/x/time v0.15.0
@@ -70,7 +70,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/slack-go/slack v0.19.0 // indirect
+	github.com/slack-go/slack v0.23.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	github.com/yuin/goldmark v1.8.2 // indirect
@@ -89,7 +89,7 @@ require (
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	google.golang.org/api v0.273.0 // indirect
-	google.golang.org/genai v1.54.0 // indirect
+	google.golang.org/genai v1.55.0 // indirect
 	google.golang.org/genproto v0.0.0-20260316180232-0b37fe3546d5 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260316180232-0b37fe3546d5 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319201613-d00831a3d3e7 // indirect

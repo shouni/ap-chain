@@ -4,14 +4,14 @@ go 1.26
 
 require (
 	github.com/shouni/clibase v1.0.3
-	github.com/shouni/go-gemini-client v1.2.8
+	github.com/shouni/go-gemini-client v1.2.10
 	github.com/shouni/go-http-kit v1.4.1
 	github.com/shouni/go-notifier v1.2.2
 	github.com/shouni/go-prompt-kit v1.0.4
 	github.com/shouni/go-remote-io v1.4.0
 	github.com/shouni/go-utils v1.0.20
 	github.com/shouni/go-web-exact/v2 v2.2.1
-	github.com/shouni/go-web-reader v1.0.4
+	github.com/shouni/go-web-reader v1.0.5
 	github.com/shouni/netarmor v1.0.3
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/sync v0.20.0

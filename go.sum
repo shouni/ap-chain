@@ -128,8 +128,8 @@ github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUc
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/shouni/clibase v1.0.3 h1:2VBU0PCJYXRFM9wjJNM9EpVLfutlaizhL1PUpndSQIM=
 github.com/shouni/clibase v1.0.3/go.mod h1:q40nTjGV4DguTP9Jo2FyblMnOCI53/qzr2GE5vwGV3Q=
-github.com/shouni/go-gemini-client v1.2.8 h1:YYqxjXdrzh2OzUWe1doV+ywEqPFD52clbHhTz1IbAIU=
-github.com/shouni/go-gemini-client v1.2.8/go.mod h1:nnUpAjTVsjiyHARhSL+KGRa3zcNjV4NvlErBC+DLj9c=
+github.com/shouni/go-gemini-client v1.2.10 h1:pEiTD24oxWWYrICXtUNoBtCTH7PFxqzjjlcKB/eRN84=
+github.com/shouni/go-gemini-client v1.2.10/go.mod h1:nnUpAjTVsjiyHARhSL+KGRa3zcNjV4NvlErBC+DLj9c=
 github.com/shouni/go-http-kit v1.4.1 h1:g3b1+G7DxEDTx+YmQo7MlPKS76KsEIHcqKR+ivIAcJg=
 github.com/shouni/go-http-kit v1.4.1/go.mod h1:gTz7vAOaJwRXTQRFz2kIcTK+7SCAU5vPHmf3a43LXBc=
 github.com/shouni/go-notifier v1.2.2 h1:t7UZbPKDPEuGM69F5AE0T0UzWEFvaiLCa4D0/WxSZXA=
@@ -142,8 +142,8 @@ github.com/shouni/go-utils v1.0.20 h1:gdjQfqJdY+uJI02FPNSE7B9GTIihGQ4DMjN36+0pd9
 github.com/shouni/go-utils v1.0.20/go.mod h1:IGMDiCaF1QlkT/roB0YTrNCUTcfcMhtnOUjG0e3AR8w=
 github.com/shouni/go-web-exact/v2 v2.2.1 h1:8Fa9YOcujKHL3VJO8zeKehCYayQOpM4zBwyy1BH9UZc=
 github.com/shouni/go-web-exact/v2 v2.2.1/go.mod h1:FmLnP27+2cD9ytxheAvnoWZkIMbt5gznEuCdG80Xslk=
-github.com/shouni/go-web-reader v1.0.4 h1:Pp71+9LYIMdOprlH3ClJPfjHH1pw11EcPMq2bE4Gz1Y=
-github.com/shouni/go-web-reader v1.0.4/go.mod h1:sy6Y7q+ImVGeCDeImclKO/G0z/hq2zxBPKxeOOTzWQk=
+github.com/shouni/go-web-reader v1.0.5 h1:hDXozv/x547wcCU5zmfU0yCNjXiSbCUiN2KNMTIUsw0=
+github.com/shouni/go-web-reader v1.0.5/go.mod h1:sy6Y7q+ImVGeCDeImclKO/G0z/hq2zxBPKxeOOTzWQk=
 github.com/shouni/netarmor v1.0.3 h1:mrepC5JLcCLhQPn3Qy7YE/BEgHkzbBlGTF84DdWlHc0=
 github.com/shouni/netarmor v1.0.3/go.mod h1:SOrb359QPM599FUJQ2GsRcUFOvJTaQ+L98Wo9Vr7xMk=
 github.com/slack-go/slack v0.23.0 h1:PTMIHTKJNuA+jVh0BNuE52ntdA7FAxzSqWAdXl5rGa8=

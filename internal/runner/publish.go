@@ -38,9 +38,13 @@ func NewPublishRunner(writer remoteio.Writer, signer remoteio.URLSigner, md mdRu
 func (r *PublishRunner) Run(ctx context.Context, storageURI, content string) (*domain.PublishResult, error) {
 	const contentTypeHTML = "text/html; charset=utf-8"
 	const contentTypeMD = "text/markdown; charset=utf-8"
+	const defaultCacheControl = "public, max-age=1800"
 
 	// 1. Markdown 保存
-	if err := r.writer.Write(ctx, storageURI, strings.NewReader(content), remoteio.WithContentType(contentTypeMD)); err != nil {
+	if err := r.writer.Write(ctx, storageURI, strings.NewReader(content),
+		remoteio.WithContentType(contentTypeMD),
+		remoteio.WithCacheControl(defaultCacheControl),
+	); err != nil {
 		return nil, fmt.Errorf("markdown write failed: %w", err)
 	}
 
@@ -50,7 +54,10 @@ func (r *PublishRunner) Run(ctx context.Context, storageURI, content string) (*d
 		return nil, err
 	}
 	htmlURI := r.replaceExt(storageURI, ".html")
-	if err := r.writer.Write(ctx, htmlURI, htmlReader, remoteio.WithContentType(contentTypeHTML)); err != nil {
+	if err := r.writer.Write(ctx, htmlURI, htmlReader,
+		remoteio.WithContentType(contentTypeHTML),
+		remoteio.WithCacheControl(defaultCacheControl),
+	); err != nil {
 		return nil, fmt.Errorf("html write failed: %w", err)
 	}
 

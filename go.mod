@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/shouni/clibase v1.0.3
-	github.com/shouni/go-gemini-client v1.3.1
+	github.com/shouni/go-gemini-client v1.4.7
 	github.com/shouni/go-http-kit v1.4.2
 	github.com/shouni/go-notifier v1.2.3
 	github.com/shouni/go-prompt-kit v1.0.4

@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/shouni/clibase v1.0.3
-	github.com/shouni/go-gemini-client v1.4.7
+	github.com/shouni/go-gemini-client v1.5.0
 	github.com/shouni/go-http-kit v1.4.2
 	github.com/shouni/go-notifier v1.2.3
 	github.com/shouni/go-prompt-kit v1.0.4
@@ -89,7 +89,7 @@ require (
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.35.0 // indirect
 	google.golang.org/api v0.273.0 // indirect
-	google.golang.org/genai v1.58.0 // indirect
+	google.golang.org/genai v1.59.0 // indirect
 	google.golang.org/genproto v0.0.0-20260316180232-0b37fe3546d5 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260316180232-0b37fe3546d5 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260319201613-d00831a3d3e7 // indirect

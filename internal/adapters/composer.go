@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/shouni/go-gemini-client/gemini"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
+	"google.golang.org/genai"
 
 	"ap-chain/internal/config"
 	"ap-chain/internal/domain"
@@ -16,20 +18,20 @@ import (
 
 // PromptBuilder は、プロンプト文字列を生成する責務を定義します。
 type PromptBuilder interface {
-	GenerateMap(text, url string) (string, error)
-	GenerateReduce(text string) (string, error)
+	GenerateMap(text string) (string, error)
+	GenerateReduce(segments []domain.Segment) (string, error)
 }
 
 // ComposerAdapter は、LLMを使用してコンテンツを構成するAdapter層の実装です。
 type ComposerAdapter struct {
-	aiClient       gemini.ContentGenerator
+	aiClient       gemini.Generator
 	promptBuilder  PromptBuilder
 	maxConcurrency int
 	rateInterval   time.Duration
 }
 
 // NewComposerAdapter は、ComposerAdapter の新しいインスタンスを生成します。
-func NewComposerAdapter(ai gemini.ContentGenerator, pb PromptBuilder, opts ...ComposerOption) (*ComposerAdapter, error) {
+func NewComposerAdapter(ai gemini.Generator, pb PromptBuilder, opts ...ComposerOption) (*ComposerAdapter, error) {
 	if ai == nil || pb == nil {
 		return nil, fmt.Errorf("aiClient and promptBuilder are required")
 	}
@@ -67,10 +69,16 @@ func WithRateInterval(d time.Duration) ComposerOption {
 	}
 }
 
+// mapResponse は、Mapフェーズの構造化出力(mapOutputSchema)に対応します。
+type mapResponse struct {
+	CleanedText string `json:"cleaned_text"`
+}
+
 // RunMap は errgroup と rate.Limiter を使用して、安全かつ効率的に並列実行を行います。
-func (a *ComposerAdapter) RunMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error) {
+// 各セグメントをAIでクリーンアップし、出典URL(Go側で既知)と組にして返します。
+func (a *ComposerAdapter) RunMap(ctx context.Context, model string, allSegments []domain.Segment) ([]domain.Segment, error) {
 	total := len(allSegments)
-	summaries := make([]string, total)
+	cleaned := make([]domain.Segment, total)
 
 	eg, ctx := errgroup.WithContext(ctx)
 	// 同時実行数を制限
@@ -88,17 +96,26 @@ func (a *ComposerAdapter) RunMap(ctx context.Context, model string, allSegments 
 				return fmt.Errorf("レート制限の待機中にエラー: %w", err)
 			}
 
-			prompt, err := a.promptBuilder.GenerateMap(seg.Text, seg.URL)
+			prompt, err := a.promptBuilder.GenerateMap(seg.Text)
 			if err != nil {
 				return fmt.Errorf("セグメント %d 処理失敗: %w", i+1, err)
 			}
 
-			response, err := a.aiClient.GenerateContent(ctx, model, prompt)
+			parts := []*genai.Part{{Text: prompt}}
+			response, err := a.aiClient.GenerateWithParts(ctx, model, parts, gemini.GenerateOptions{
+				ResponseMIMEType: "application/json",
+				ResponseSchema:   mapOutputSchema(),
+			})
 			if err != nil {
 				return fmt.Errorf("セグメント %d (URL: %s) 処理失敗: %w", i+1, seg.URL, err)
 			}
 
-			summaries[i] = response.Text
+			var out mapResponse
+			if err := json.Unmarshal([]byte(response.Text), &out); err != nil {
+				return fmt.Errorf("セグメント %d (URL: %s) のJSON解析に失敗: %w", i+1, seg.URL, err)
+			}
+
+			cleaned[i] = domain.Segment{Text: out.CleanedText, URL: seg.URL}
 
 			slog.InfoContext(ctx, "セグメント処理成功",
 				slog.Int("index", i+1),
@@ -112,19 +129,25 @@ func (a *ComposerAdapter) RunMap(ctx context.Context, model string, allSegments 
 		return nil, err
 	}
 
-	return summaries, nil
+	return cleaned, nil
 }
 
-// RunReduce は中間要約を統合し、最終的な構造化レポートを生成します。
-func (a *ComposerAdapter) RunReduce(ctx context.Context, model, combinedText string) (string, error) {
+// RunReduce は中間要約を統合し、最終的な構造化レポートのJSON文字列を生成します。
+// (title/sections 形式。reduceOutputSchema 参照。JSON→Markdown/HTML等への変換は
+// 呼び出し側の責務とし、ここではunmarshalしません。)
+func (a *ComposerAdapter) RunReduce(ctx context.Context, model string, segments []domain.Segment) (string, error) {
 	slog.InfoContext(ctx, "最終的な構造化（Reduceフェーズ）を開始します。", slog.String("model", model))
 
-	prompt, err := a.promptBuilder.GenerateReduce(combinedText)
+	prompt, err := a.promptBuilder.GenerateReduce(segments)
 	if err != nil {
 		return "", fmt.Errorf("最終 Reduce プロンプトの生成に失敗しました: %w", err)
 	}
 
-	response, err := a.aiClient.GenerateContent(ctx, model, prompt)
+	parts := []*genai.Part{{Text: prompt}}
+	response, err := a.aiClient.GenerateWithParts(ctx, model, parts, gemini.GenerateOptions{
+		ResponseMIMEType: "application/json",
+		ResponseSchema:   reduceOutputSchema(),
+	})
 	if err != nil {
 		return "", fmt.Errorf("LLM最終構造化処理（Reduceフェーズ）に失敗しました: %w", err)
 	}

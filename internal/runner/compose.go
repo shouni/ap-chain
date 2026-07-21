@@ -22,13 +22,13 @@ const (
 // MapReduceモデルを採用しており、個別のコンテンツ要約（Map）と
 // それらを統合した最終レポートの構築（Reduce）を担います。
 type Composer interface {
-	// RunMap は、分割された各セグメントに対して並列に中間処理（要約等）を実行します。
-	// 各セグメントから抽出された中間情報のスライスを返します。
-	RunMap(ctx context.Context, model string, allSegments []domain.Segment) ([]string, error)
+	// RunMap は、分割された各セグメントに対して並列に中間処理（クリーンアップ）を実行します。
+	// 各セグメントのAIクリーンアップ済みテキストを、元の出典URLと組にして返します。
+	RunMap(ctx context.Context, model string, allSegments []domain.Segment) ([]domain.Segment, error)
 
-	// RunReduce は、RunMap で生成された中間情報を統合し、
-	// 指定されたモデルを使用して最終的な構造化文書（レポート）を書き上げます。
-	RunReduce(ctx context.Context, model, combinedText string) (string, error)
+	// RunReduce は、RunMap で生成された中間結果を統合し、
+	// 指定されたモデルを使用して最終的な構造化文書（レポート）のJSON文字列を書き上げます。
+	RunReduce(ctx context.Context, model string, segments []domain.Segment) (string, error)
 }
 
 // Models は使用するモデルの構成を保持します。
@@ -83,19 +83,15 @@ func (r *ComposeRunner) composeAndStructureText(ctx context.Context, results []d
 		slog.Int("total_segments", len(allSegments)))
 
 	// 2. Mapフェーズの実行（Executorに委譲）
-	intermediateSummaries, err := r.composer.RunMap(ctx, r.models.MapModel, allSegments)
+	cleanedSegments, err := r.composer.RunMap(ctx, r.models.MapModel, allSegments)
 	if err != nil {
 		return "", fmt.Errorf("セグメント処理（Mapフェーズ）に失敗しました: %w", err)
 	}
 
-	// 3. Reduceフェーズの準備：中間要約の結合
-	const summarySeparator = "\n\n--- INTERMEDIATE SUMMARY END ---\n\n"
-	finalCombinedText := strings.Join(intermediateSummaries, summarySeparator)
-
-	// 4. Reduceフェーズ：最終的な統合と構造化
+	// 3. Reduceフェーズ：最終的な統合と構造化
 	slog.InfoContext(ctx, "Final structuring started (Reduce phase)")
 
-	finalResponseText, err := r.composer.RunReduce(ctx, r.models.ReduceModel, finalCombinedText)
+	finalResponseText, err := r.composer.RunReduce(ctx, r.models.ReduceModel, cleanedSegments)
 	if err != nil {
 		return "", fmt.Errorf("LLM最終構造化処理（Reduceフェーズ）に失敗しました: %w", err)
 	}

@@ -1,11 +1,9 @@
 package runner
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"path"
-	"strings"
+	"io"
 
 	"github.com/shouni/go-remote-io/remoteio"
 
@@ -13,81 +11,56 @@ import (
 	"ap-chain/internal/domain"
 )
 
-// mdRunner は Markdown 変換処理を実行するコアサービスを抽象化します。
-type mdRunner interface {
-	Run(title string, markdown []byte) (*bytes.Buffer, error)
+// converter は、構造化レポートJSONをMarkdownへ変換する契約です。
+type converter interface {
+	Run(content []byte) (io.Reader, error)
 }
 
 // PublishRunner は、成果物の保存と署名付きURLの生成を担当します。
 type PublishRunner struct {
-	writer remoteio.Writer
-	signer remoteio.URLSigner
-	md     mdRunner
+	writer    remoteio.Writer
+	signer    remoteio.URLSigner
+	converter converter
 }
 
 // NewPublishRunner は PublishRunner の新しいインスタンスを作成します。
-func NewPublishRunner(writer remoteio.Writer, signer remoteio.URLSigner, md mdRunner) *PublishRunner {
+func NewPublishRunner(writer remoteio.Writer, signer remoteio.URLSigner, converter converter) *PublishRunner {
 	return &PublishRunner{
-		writer: writer,
-		signer: signer,
-		md:     md,
+		writer:    writer,
+		signer:    signer,
+		converter: converter,
 	}
 }
 
 // Run は公開処理を実行し、署名付きURLを含む結果を返します。
+// content は Reduce フェーズが生成した構造化レポートのJSON文字列です。
 func (r *PublishRunner) Run(ctx context.Context, storageURI, content string) (*domain.PublishResult, error) {
-	const contentTypeHTML = "text/html; charset=utf-8"
 	const contentTypeMD = "text/markdown; charset=utf-8"
 	const defaultCacheControl = "public, max-age=1800"
 
-	// 1. Markdown 保存
-	if err := r.writer.Write(ctx, storageURI, strings.NewReader(content),
+	markdown, err := r.converter.Run([]byte(content))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := r.writer.Write(ctx, storageURI, markdown,
 		remoteio.WithContentType(contentTypeMD),
 		remoteio.WithCacheControl(defaultCacheControl),
 	); err != nil {
 		return nil, fmt.Errorf("markdown write failed: %w", err)
 	}
 
-	// 2. HTML 変換・保存
-	htmlReader, err := r.md.Run("", []byte(content))
-	if err != nil {
-		return nil, err
-	}
-	htmlURI := r.replaceExt(storageURI, ".html")
-	if err := r.writer.Write(ctx, htmlURI, htmlReader,
-		remoteio.WithContentType(contentTypeHTML),
-		remoteio.WithCacheControl(defaultCacheControl),
-	); err != nil {
-		return nil, fmt.Errorf("html write failed: %w", err)
-	}
-
-	// 3. 署名付きURLの生成
-	mdSigned, err := r.generateSignedResultURL(ctx, storageURI)
+	signed, err := r.generateSignedResultURL(ctx, storageURI)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign markdown URL: %w", err)
 	}
-	htmlSigned, err := r.generateSignedResultURL(ctx, htmlURI)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign html URL: %w", err)
-	}
 
-	// 結果を返却
 	return &domain.PublishResult{
 		Markdown: domain.PublishedFile{
 			StorageURI: storageURI,
-			PublicURL:  mdSigned,
-		},
-		HTML: domain.PublishedFile{
-			StorageURI: htmlURI,
-			PublicURL:  htmlSigned,
+			PublicURL:  signed,
 		},
 	}, nil
-}
-
-// replaceExt は URI の拡張子を新しいものに差し替えます
-func (r *PublishRunner) replaceExt(uri, newExt string) string {
-	ext := path.Ext(uri)
-	return strings.TrimSuffix(uri, ext) + newExt
 }
 
 // generateSignedResultURL は StorageURI から署名付きURLを作るヘルパーです。

@@ -2,7 +2,6 @@ package builder
 
 import (
 	"context"
-	"fmt"
 
 	"ap-chain/internal/app"
 	"ap-chain/internal/domain"
@@ -11,19 +10,19 @@ import (
 
 // buildPipeline は、各コンポーネントを構築し、新しいパイプラインを初期化して返します。
 func buildPipeline(ctx context.Context, appCtx *app.Container) (domain.Pipeline, error) {
-	collector, err := buildCollector(ctx, appCtx)
+	collector, err := buildCollector(appCtx)
 	if err != nil {
-		return nil, fmt.Errorf("Collectorの初期化に失敗しました: %w", err)
+		return nil, wrapInitErr("Collector", err)
 	}
 
 	composer, err := buildComposer(ctx, appCtx)
 	if err != nil {
-		return nil, fmt.Errorf("Composerの初期化に失敗しました: %w", err)
+		return nil, wrapInitErr("Composer", err)
 	}
 
-	publisher, err := buildPublisher(ctx, appCtx)
+	publisher, err := buildPublisher(appCtx)
 	if err != nil {
-		return nil, fmt.Errorf("Publisherの初期化に失敗しました: %w", err)
+		return nil, wrapInitErr("Publisher", err)
 	}
 
 	p := pipeline.New(collector, composer, publisher, appCtx.Notifier)

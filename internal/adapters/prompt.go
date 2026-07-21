@@ -1,22 +1,23 @@
 package adapters
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/shouni/go-prompt-kit/prompts"
 
 	"ap-chain/assets"
+	"ap-chain/internal/domain"
 )
 
 // MapTemplateData は、Mapフェーズ（個別セグメントの要約）で使用するテンプレートデータです。
 type MapTemplateData struct {
 	SegmentText string
-	SourceURL   string
 }
 
 // ReduceTemplateData は、Reduceフェーズ（要約の統合と構造化）で使用するテンプレートデータです。
 type ReduceTemplateData struct {
-	CombinedText string
+	SegmentsJSON string
 }
 
 // templateBuilder は、テンプレートに基づいてプロンプト文字列を構築するための内部インターフェースです。
@@ -47,10 +48,9 @@ func NewPromptAdapter() (*PromptAdapter, error) {
 }
 
 // GenerateMap は、個別セグメントから中間要約を生成するための Map プロンプトを構築します。
-func (p *PromptAdapter) GenerateMap(text, url string) (string, error) {
+func (p *PromptAdapter) GenerateMap(text string) (string, error) {
 	data := MapTemplateData{
 		SegmentText: text,
-		SourceURL:   url,
 	}
 	prompt, err := p.builder.Build("map", data)
 	if err != nil {
@@ -59,10 +59,16 @@ func (p *PromptAdapter) GenerateMap(text, url string) (string, error) {
 	return prompt, nil
 }
 
-// GenerateReduce は、中間要約群を統合し、最終的な構造化文書を作成するための Reduce プロンプトを構築します。
-func (p *PromptAdapter) GenerateReduce(text string) (string, error) {
+// GenerateReduce は、Mapフェーズで得られたセグメント群(JSON化)を統合し、
+// 最終的な構造化文書を作成するための Reduce プロンプトを構築します。
+func (p *PromptAdapter) GenerateReduce(segments []domain.Segment) (string, error) {
+	segmentsJSON, err := json.Marshal(segments)
+	if err != nil {
+		return "", fmt.Errorf("セグメントJSONの構築に失敗: %w", err)
+	}
+
 	data := ReduceTemplateData{
-		CombinedText: text,
+		SegmentsJSON: string(segmentsJSON),
 	}
 	prompt, err := p.builder.Build("reduce", data)
 	if err != nil {

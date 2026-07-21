@@ -7,11 +7,11 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/shouni/ap-chain)](https://goreportcard.com/report/github.com/shouni/ap-chain)
 [![Status](https://img.shields.io/badge/Status-Completed-brightgreen)](#)
 
-## 🌟 概要: 高精度な情報収集とAI構造化のパイプライン
+## 🌟 概要
 
-**AP Chain** は、大量のウェブページから情報を**並列・高速に取得**し、LLM（大規模言語モデル）の**マルチステップ処理**によって、情報の欠落や重複を排除した「高密度かつ論理的な構造化文書」を生成する、Go言語製の高機能CLIツールです。
+**AP Chain** は、大量のウェブページから情報を並列に取得し、GeminiのMapReduce処理(セグメントごとのクリーンアップ → 統合・構造化)によって、重複を排除した構造化文書を生成するGo製CLIツールです。
 
-単なる要約ツールではなく、**MapReduce型の処理フロー**を採用することで、長大なテキストでも重要な詳細を落とさず、情報の透明性（ソースURLの明示）を維持したまま、最終的なHTMLドキュメントへと変換します。
+AIの出力はResponseSchemaでJSON構造化して安定させ、そのJSONから決定的にMarkdownを組み立てて公開します。各セクションには、根拠となった出典URLが自動的に付与されます。
 
 ---
 
@@ -27,7 +27,7 @@
 
 ### 🔔 通知とセキュアな共有
 * **Slack連携**: 処理の完了（成功・失敗）を即座にSlackへ通知します。
-* **署名付きURL (Signed URL)**: 生成されたHTML/Markdownに対して、一時的な閲覧権限を持つ署名付きURLを発行。非公開のGCSバケットでも安全に結果を共有可能です。
+* **署名付きURL (Signed URL)**: 生成されたMarkdownに対して、一時的な閲覧権限を持つ署名付きURLを発行。非公開のGCSバケットでも安全に結果を共有可能です。
 
 ---
 
@@ -110,18 +110,17 @@ sequenceDiagram
 
     Pipeline->>Composer: Run(ctx, urlResults)
     Composer->>Composer: Segment content per URL
-    Composer->>LLM: RunMap(model, segments)
-    LLM-->>Composer: intermediate summaries
-    Composer->>LLM: RunReduce(model, combined summaries)
-    LLM-->>Composer: final markdown
-    Composer-->>Pipeline: structured content
+    Composer->>LLM: RunMap(model, segments) [ResponseSchema: cleaned_text]
+    LLM-->>Composer: cleaned segments (text + original URL)
+    Composer->>LLM: RunReduce(model, cleaned segments) [ResponseSchema: title/sections]
+    LLM-->>Composer: structured report JSON
+    Composer-->>Pipeline: structured report JSON
 
-    Pipeline->>Publisher: Run(ctx, outputURI, markdown)
+    Pipeline->>Publisher: Run(ctx, outputURI, reportJSON)
+    Publisher->>Publisher: Convert JSON to Markdown (deterministic)
     Publisher->>Storage: Write markdown
-    Publisher->>Publisher: Convert Markdown to HTML
-    Publisher->>Storage: Write HTML
-    Publisher->>Storage: GenerateSignedURL(markdown/html)
-    Storage-->>Publisher: markdown/html URLs
+    Publisher->>Storage: GenerateSignedURL(markdown)
+    Storage-->>Publisher: markdown URL
     Publisher-->>Pipeline: PublishResult
 
     Pipeline->>Slack: NotifySuccess(outputURI, publicURL, sourceCount)

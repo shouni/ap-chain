@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	mdBuilder "github.com/shouni/go-prompt-kit/md/builder"
 	"github.com/shouni/go-remote-io/remoteio"
 	scraperBuilder "github.com/shouni/go-web-exact/v2/builder"
 	"github.com/shouni/go-web-exact/v2/scraper"
@@ -77,20 +76,9 @@ func buildComposer(ctx context.Context, appCtx *app.Container) (*runner.ComposeR
 
 // buildPublisher は、Publisher のインスタンスを構築して返します。
 func buildPublisher(appCtx *app.Container) (*runner.PublishRunner, error) {
-	b, err := mdBuilder.New(
-		mdBuilder.WithEnableUnsafeHTML(false),
-	)
-	if err != nil {
-		return nil, wrapInitErr("Markdown Builder", err)
-	}
-	md, err := b.BuildRunner()
-	if err != nil {
-		return nil, fmt.Errorf("MarkdownToHtmlRunnerの構築に失敗: %w", err)
-	}
-
 	return runner.NewPublishRunner(
 		appCtx.RemoteIO.Writer,
 		appCtx.RemoteIO.Signer,
-		md,
+		adapters.NewMarkdownConverter(),
 	), nil
 }

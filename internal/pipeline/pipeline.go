@@ -73,7 +73,7 @@ func (p *Pipeline) Execute(ctx context.Context, req domain.Request) (err error) 
 // notifySuccess は成功通知を送信します。
 func (p *Pipeline) notifySuccess(ctx context.Context, res *domain.PublishResult, count int) {
 	p.sendNotify(ctx, func(nCtx context.Context) error {
-		return p.notifier.NotifySuccess(nCtx, res.HTML.StorageURI, res.HTML.PublicURL, count)
+		return p.notifier.NotifySuccess(nCtx, res.Markdown.StorageURI, res.Markdown.PublicURL, count)
 	}, "success")
 }
 

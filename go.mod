@@ -7,7 +7,7 @@ require (
 	github.com/shouni/go-gemini-client v1.13.0
 	github.com/shouni/go-http-kit v1.6.0
 	github.com/shouni/go-notifier v1.3.0
-	github.com/shouni/go-prompt-kit v1.1.0
+	github.com/shouni/go-prompt-kit v1.2.0
 	github.com/shouni/go-remote-io v1.6.1
 	github.com/shouni/go-utils v1.1.0
 	github.com/shouni/go-web-exact/v2 v2.4.0
@@ -72,7 +72,7 @@ require (
 	github.com/slack-go/slack v0.26.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
-	github.com/yuin/goldmark v1.8.2 // indirect
+	github.com/yuin/goldmark v1.8.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.43.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.68.0 // indirect

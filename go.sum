@@ -132,8 +132,8 @@ github.com/shouni/go-http-kit v1.6.0 h1:ZE5X6cnoakIwKeXZj+Rr0fvN+GyuFGvUKwPGB4Ls
 github.com/shouni/go-http-kit v1.6.0/go.mod h1:AoqjbhDTfR2GV7Hgie59qm2Qe9m/icoJAIw0IVCOivU=
 github.com/shouni/go-notifier v1.3.0 h1:1h0I1jFqRKRwqZUQQhVzOjuNK76MlAswuf4iAdX5ntg=
 github.com/shouni/go-notifier v1.3.0/go.mod h1:9YvG+v47AkBpMJI1VeHhWYp2QRqA1owuqFYfPhPmKZo=
-github.com/shouni/go-prompt-kit v1.1.0 h1:qlTSPRSYHIts1/21UqhX6dSJ7p9i61XKIgOzc3E8ZfE=
-github.com/shouni/go-prompt-kit v1.1.0/go.mod h1:TVt7Vq3uSztr9SWf90VzDzxOVflJ/1yMiTLo6/rkUBQ=
+github.com/shouni/go-prompt-kit v1.2.0 h1:aZyXja9Mf3kIM075V3kbZH9joliWlrbnn3G4xsev2/I=
+github.com/shouni/go-prompt-kit v1.2.0/go.mod h1:zcmc8aJcOR48ZIojpOoksYSQXk4hD3budEHIq4VusTc=
 github.com/shouni/go-remote-io v1.6.1 h1:4zwhXoisTl58j12q0o0oUp2npNbMJ7N96GclgJkLIgM=
 github.com/shouni/go-remote-io v1.6.1/go.mod h1:KIeWWiBD1vVGYEGcZEOysV57M9sm2x6qJVk4nRwDDY4=
 github.com/shouni/go-utils v1.1.0 h1:e7J6QbtNnHKQbi8qJozVWh7uKxqmPWyqYg+HGGbUtAc=
@@ -156,8 +156,8 @@ github.com/spiffe/go-spiffe/v2 v2.6.0/go.mod h1:gm2SeUoMZEtpnzPNs2Csc0D/gX33k1xI
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-github.com/yuin/goldmark v1.8.2 h1:kEGpgqJXdgbkhcOgBxkC0X0PmoPG1ZyoZ117rDVp4zE=
-github.com/yuin/goldmark v1.8.2/go.mod h1:ip/1k0VRfGynBgxOz0yCqHrbZXhcjxyuS66Brc7iBKg=
+github.com/yuin/goldmark v1.8.4 h1:oat/nd3U6NeQqFEL3xpEJq7d7c86NI+DbSNGAs4xnjA=
+github.com/yuin/goldmark v1.8.4/go.mod h1:ip/1k0VRfGynBgxOz0yCqHrbZXhcjxyuS66Brc7iBKg=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/contrib/detectors/gcp v1.43.0 h1:62yY3dT7/ShwOxzA0RsKRgshBmfElKI4d/Myu2OxDFU=

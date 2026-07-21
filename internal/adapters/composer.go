@@ -10,12 +10,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
+	"ap-chain/internal/config"
 	"ap-chain/internal/domain"
-)
-
-const (
-	defaultMaxConcurrency = 1
-	defaultLLMRateLimit   = 10 * time.Second
 )
 
 // PromptBuilder は、プロンプト文字列を生成する責務を定義します。
@@ -40,8 +36,8 @@ func NewComposerAdapter(ai gemini.ContentGenerator, pb PromptBuilder, opts ...Co
 	c := &ComposerAdapter{
 		aiClient:       ai,
 		promptBuilder:  pb,
-		maxConcurrency: defaultMaxConcurrency,
-		rateInterval:   defaultLLMRateLimit,
+		maxConcurrency: config.DefaultMaxConcurrency,
+		rateInterval:   config.DefaultRateInterval,
 	}
 
 	for _, opt := range opts {

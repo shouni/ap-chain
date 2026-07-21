@@ -19,14 +19,14 @@ type ReduceTemplateData struct {
 	CombinedText string
 }
 
-// promptBuilder は、テンプレートに基づいてプロンプト文字列を構築するための内部インターフェースです。
-type promptBuilder interface {
+// templateBuilder は、テンプレートに基づいてプロンプト文字列を構築するための内部インターフェースです。
+type templateBuilder interface {
 	Build(mode string, data any) (string, error)
 }
 
 // PromptAdapter は、AP Chain の各処理フェーズに適した AI プロンプトを生成するアダプターです。
 type PromptAdapter struct {
-	builder promptBuilder
+	builder templateBuilder
 }
 
 // NewPromptAdapter は、埋め込まれたアセットからテンプレートを読み込み、アダプターを初期化します。

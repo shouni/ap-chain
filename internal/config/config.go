@@ -13,14 +13,16 @@ const (
 	MaxInputSize               = 10 * 1024 * 1024
 	DefaultSignedURLExpiration = 10 * time.Minute
 	// scraper
-	defaultLScraperTimeout = 15 * time.Second
-	defaultParallel        = 5
+	defaultParallel = 5
 
 	// AI
 	defaultMapModelName    = "gemini-3-flash-preview"
 	defaultReduceModelName = "gemini-3-flash-preview"
-	defaultMaxConcurrency  = 1
-	defaultRateIntervalSec = 10
+
+	// DefaultMaxConcurrency は、LLM呼び出しのデフォルト最大並列数です。
+	DefaultMaxConcurrency = 1
+	// DefaultRateInterval は、LLM呼び出しのデフォルトレート制限間隔です。
+	DefaultRateInterval = 10 * time.Second
 )
 
 // Config はコマンドラインフラグを保持する構造体です。
@@ -29,7 +31,6 @@ type Config struct {
 	OutputFile string
 
 	HTTPTimeout        time.Duration
-	ScraperTimeout     time.Duration
 	MaxScraperParallel int
 
 	ProjectID       string
@@ -81,7 +82,6 @@ func (c *Config) FillDefaults(envCfg *Config) {
 	}
 
 	c.HTTPTimeout = DefaultHTTPTimeout
-	c.ScraperTimeout = defaultLScraperTimeout
 	c.MaxScraperParallel = defaultParallel
 }
 
@@ -93,7 +93,7 @@ func LoadConfig() *Config {
 		SlackWebhookURL: envutil.GetEnv("SLACK_WEBHOOK_URL", ""),
 		MapModel:        envutil.GetEnv("GEMINI_MODEL", defaultMapModelName),
 		ReduceModel:     envutil.GetEnv("GEMINI_QUALITY_MODEL", defaultReduceModelName),
-		MaxConcurrency:  envutil.GetEnvAsInt("MAX_CONCURRENCY", defaultMaxConcurrency),
-		RateInterval:    time.Duration(envutil.GetEnvAsInt("RATE_INTERVAL_SEC", defaultRateIntervalSec)) * time.Second,
+		MaxConcurrency:  envutil.GetEnvAsInt("MAX_CONCURRENCY", DefaultMaxConcurrency),
+		RateInterval:    time.Duration(envutil.GetEnvAsInt("RATE_INTERVAL_SEC", int(DefaultRateInterval/time.Second))) * time.Second,
 	}
 }

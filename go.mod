@@ -11,7 +11,7 @@ require (
 	github.com/shouni/go-remote-io v1.6.1
 	github.com/shouni/go-utils v1.1.0
 	github.com/shouni/go-web-exact/v2 v2.5.0
-	github.com/shouni/go-web-reader v1.1.2
+	github.com/shouni/go-web-reader v1.1.3
 	github.com/shouni/netarmor v1.1.0
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/sync v0.22.0

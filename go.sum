@@ -140,8 +140,8 @@ github.com/shouni/go-utils v1.1.0 h1:e7J6QbtNnHKQbi8qJozVWh7uKxqmPWyqYg+HGGbUtAc
 github.com/shouni/go-utils v1.1.0/go.mod h1:IGMDiCaF1QlkT/roB0YTrNCUTcfcMhtnOUjG0e3AR8w=
 github.com/shouni/go-web-exact/v2 v2.5.0 h1:neq+HecgFuAbUZ86N/zOQ7V5suZojIAw3UNSNm5PKcY=
 github.com/shouni/go-web-exact/v2 v2.5.0/go.mod h1:d9kZLAtoAdWy7kXKiGH9yf7PLMVZmBf3jmWjeBqHE8A=
-github.com/shouni/go-web-reader v1.1.2 h1:bo8a5X7vz4b8kCUMsTCKAFf3niA1ZxM5fV7O49PW6U8=
-github.com/shouni/go-web-reader v1.1.2/go.mod h1:dYao1dSDMvP/duA/q0dgeKDsj0zhcy7LBfVSv5cu6U0=
+github.com/shouni/go-web-reader v1.1.3 h1:6LWoBGz8O5GFi/3lgWNPnpKak5qp5b77ywRbUrFsGQQ=
+github.com/shouni/go-web-reader v1.1.3/go.mod h1:dYao1dSDMvP/duA/q0dgeKDsj0zhcy7LBfVSv5cu6U0=
 github.com/shouni/netarmor v1.1.0 h1:PNgmnY7sFvIBKtE8TqjO2IUguwyNISRt4x13fhhIm4w=
 github.com/shouni/netarmor v1.1.0/go.mod h1:SOrb359QPM599FUJQ2GsRcUFOvJTaQ+L98Wo9Vr7xMk=
 github.com/slack-go/slack v0.26.0 h1:hx5Iy1t89tSw2zLEHu5YFFTDDFGmvhYCUh73ptHQ2Ls=

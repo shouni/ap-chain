@@ -126,12 +126,12 @@ github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUc
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/shouni/clibase v1.0.4 h1:eppU3pCVbTXuSqKx6iwgWEByJB2FSVWGyTuMYLcmJck=
 github.com/shouni/clibase v1.0.4/go.mod h1:q40nTjGV4DguTP9Jo2FyblMnOCI53/qzr2GE5vwGV3Q=
-github.com/shouni/go-gemini-client v1.13.6 h1:i/wZamWV+PzUfPeVwhpzvOnYkxISMmsX3XnLOU2OKgg=
-github.com/shouni/go-gemini-client v1.13.6/go.mod h1:REqX7/HqOiV0VEsUEy8+iV9xwz7Tr8Hx+o1kYAxXXUQ=
+github.com/shouni/go-gemini-client v1.13.8 h1:CxaPW6J10T3rs4DLR0JAAMUdJCRfhPJhA6Bfm85cVxQ=
+github.com/shouni/go-gemini-client v1.13.8/go.mod h1:REqX7/HqOiV0VEsUEy8+iV9xwz7Tr8Hx+o1kYAxXXUQ=
 github.com/shouni/go-http-kit v1.7.2 h1:etlQK0c6C89rhAtYRHGG1om8uDUc+oxw5Ss9SjO7FtQ=
 github.com/shouni/go-http-kit v1.7.2/go.mod h1:EBhrRSrscGl/5J6vG4x/KuEk/W3UelBsj3gg0ycNneM=
-github.com/shouni/go-notifier v1.3.0 h1:1h0I1jFqRKRwqZUQQhVzOjuNK76MlAswuf4iAdX5ntg=
-github.com/shouni/go-notifier v1.3.0/go.mod h1:9YvG+v47AkBpMJI1VeHhWYp2QRqA1owuqFYfPhPmKZo=
+github.com/shouni/go-notifier v1.3.2 h1:rsYaYv/ftZ8he3wTcLAssvUvxJ4Xaf7G7wImwrywH8k=
+github.com/shouni/go-notifier v1.3.2/go.mod h1:8CPAWO1mb5xQr+HDwJ+bVdg6vDCODyq/87/Wn3+Miok=
 github.com/shouni/go-prompt-kit v1.2.0 h1:aZyXja9Mf3kIM075V3kbZH9joliWlrbnn3G4xsev2/I=
 github.com/shouni/go-prompt-kit v1.2.0/go.mod h1:zcmc8aJcOR48ZIojpOoksYSQXk4hD3budEHIq4VusTc=
 github.com/shouni/go-remote-io v1.6.1 h1:4zwhXoisTl58j12q0o0oUp2npNbMJ7N96GclgJkLIgM=
@@ -144,8 +144,8 @@ github.com/shouni/go-web-reader v1.1.4 h1:YPRgTYOGp0ho///RzdTRkLLQi+4XX9iZzD62vJ
 github.com/shouni/go-web-reader v1.1.4/go.mod h1:XBRqKkYPpjfzXUfJnF5WtDmthp7pR4wGd+z9UoZG/Ts=
 github.com/shouni/netarmor v1.2.0 h1:dubvM231CMkYz6bhYNB29Gp4YA3UnP6Wq0wfwzMFxnI=
 github.com/shouni/netarmor v1.2.0/go.mod h1:WxojUH0M+Z2lqZH2vw572A1zn5l1VkH7V47rnTnZmVY=
-github.com/slack-go/slack v0.26.0 h1:hx5Iy1t89tSw2zLEHu5YFFTDDFGmvhYCUh73ptHQ2Ls=
-github.com/slack-go/slack v0.26.0/go.mod h1:UEe+jmo9WLlwHB04qsOrTDvqM7Aa4rQL3O5wF3n0hx4=
+github.com/slack-go/slack v0.27.0 h1:VWOpUzOK6UAPCCQlFxl79jhv8a/b+GOSJMnWziDJ8B8=
+github.com/slack-go/slack v0.27.0/go.mod h1:UEe+jmo9WLlwHB04qsOrTDvqM7Aa4rQL3O5wF3n0hx4=
 github.com/spf13/cobra v1.10.2 h1:DMTTonx5m65Ic0GOoRY2c16WCbHxOOw6xxezuLaBpcU=
 github.com/spf13/cobra v1.10.2/go.mod h1:7C1pvHqHw5A4vrJfjNwvOdzYu0Gml16OCs2GRiTUUS4=
 github.com/spf13/pflag v1.0.9/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=

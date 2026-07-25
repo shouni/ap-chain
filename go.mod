@@ -4,15 +4,15 @@ go 1.26
 
 require (
 	github.com/shouni/clibase v1.0.4
-	github.com/shouni/go-gemini-client v1.13.5
-	github.com/shouni/go-http-kit v1.7.0
+	github.com/shouni/go-gemini-client v1.13.6
+	github.com/shouni/go-http-kit v1.7.2
 	github.com/shouni/go-notifier v1.3.0
 	github.com/shouni/go-prompt-kit v1.2.0
 	github.com/shouni/go-remote-io v1.6.1
 	github.com/shouni/go-utils v1.1.0
 	github.com/shouni/go-web-exact/v2 v2.5.0
-	github.com/shouni/go-web-reader v1.1.3
-	github.com/shouni/netarmor v1.1.0
+	github.com/shouni/go-web-reader v1.1.4
+	github.com/shouni/netarmor v1.2.0
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/sync v0.22.0
 	golang.org/x/time v0.15.0
@@ -51,7 +51,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.37.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.44.1 // indirect
 	github.com/aws/smithy-go v1.27.3 // indirect
-	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
+	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.37.0 // indirect

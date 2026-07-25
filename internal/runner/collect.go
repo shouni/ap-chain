@@ -128,8 +128,7 @@ func (r *CollectRunner) parseURLs(ctx context.Context, content string) ([]string
 			continue
 		}
 
-		ok, err := securenet.IsSafeURL(line)
-		if !ok || err != nil {
+		if err := securenet.ValidateURL(ctx, line); err != nil {
 			slog.WarnContext(ctx, "無効なURL形式をスキップしました", "line", line, "error", err)
 			continue
 		}

@@ -1,7 +1,9 @@
+// Package adapters は、外部ライブラリを内部インターフェースの背後に隠すアダプタ群です。
 package adapters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -26,13 +28,14 @@ func NewAIAdapter(ctx context.Context, cfg *config.Config) (*gemini.Client, erro
 
 	// GeminiAPIKeyが設定されている場合は優先して使用し、
 	// 設定されていない場合はGCPのProjectIDを使用したVertex AI経由の認証を試みる。
-	if cfg.GeminiAPIKey != "" {
+	switch {
+	case cfg.GeminiAPIKey != "":
 		clientConfig.APIKey = cfg.GeminiAPIKey
-	} else if cfg.ProjectID != "" {
+	case cfg.ProjectID != "":
 		clientConfig.ProjectID = cfg.ProjectID
 		clientConfig.LocationID = defaultLocationID
-	} else {
-		return nil, fmt.Errorf("GEMINI_API_KEY or GCP_PROJECT_ID is not set")
+	default:
+		return nil, errors.New("GEMINI_API_KEY or GCP_PROJECT_ID is not set")
 	}
 
 	aiClient, err := gemini.NewClient(ctx, clientConfig)

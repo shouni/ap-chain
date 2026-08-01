@@ -6,29 +6,23 @@ import (
 	"testing"
 
 	"github.com/shouni/go-gemini-client/gemini"
-	"google.golang.org/genai"
 
 	"ap-chain/internal/domain"
 )
 
-// mockGeminiClient は gemini.Generator インターフェースのモックです。
+// mockGeminiClient は gemini.MultimodalGenerator インターフェースのモックです。
+// genai の型を含まない 1 メソッドのインターフェースなので、これだけで足ります。
 type mockGeminiClient struct {
 	generateWithPartsFunc func(opts gemini.GenerateOptions) (*gemini.Response, error)
+	lastPrompt            string
 }
 
-func (m *mockGeminiClient) GenerateContent(ctx context.Context, model string, prompt string) (*gemini.Response, error) {
-	return m.GenerateWithParts(ctx, model, []*genai.Part{{Text: prompt}}, gemini.GenerateOptions{})
-}
-
-func (m *mockGeminiClient) GenerateWithParts(_ context.Context, _ string, _ []*genai.Part, opts gemini.GenerateOptions) (*gemini.Response, error) {
+func (m *mockGeminiClient) GenerateWithAttachments(_ context.Context, _ string, prompt string, _ []gemini.Attachment, opts gemini.GenerateOptions) (*gemini.Response, error) {
+	m.lastPrompt = prompt
 	if m.generateWithPartsFunc != nil {
 		return m.generateWithPartsFunc(opts)
 	}
 	return &gemini.Response{Text: "{}"}, nil
-}
-
-func (m *mockGeminiClient) IsVertexAI() bool {
-	return false
 }
 
 // mockPromptBuilder は PromptBuilder インターフェースのモックです。

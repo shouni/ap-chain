@@ -20,12 +20,7 @@ func buildPipeline(ctx context.Context, appCtx *app.Container) (domain.Pipeline,
 		return nil, wrapInitErr("Composer", err)
 	}
 
-	publisher, err := buildPublisher(appCtx)
-	if err != nil {
-		return nil, wrapInitErr("Publisher", err)
-	}
-
-	p := pipeline.New(collector, composer, publisher, appCtx.Notifier)
+	p := pipeline.New(collector, composer, buildPublisher(appCtx), appCtx.Notifier)
 
 	return p, nil
 }

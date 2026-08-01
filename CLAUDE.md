@@ -11,14 +11,17 @@ AP Chain is a Go CLI that scrapes a list of URLs, runs the content through a Gem
 ```bash
 go build ./...                 # build
 go vet ./...                   # static checks
+go test -race ./...            # what CI runs
+golangci-lint run              # config in .golangci.yml; CI pins v2.12.2
+go test ./internal/config/ -run TestLoadConfig -v   # single test
 go run ./main.go generate -i urls.txt -o ./output/output.md
 ```
 
-There are currently no `_test.go` files in this repository — `go test ./...` runs but exercises nothing. If you add tests, `go test ./internal/<pkg>/... -run TestName -v` runs a single one.
-
 Required environment for running `generate`: either `GEMINI_API_KEY` or `GCP_PROJECT_ID` (Vertex AI auth) must be set; `SLACK_WEBHOOK_URL` is optional and enables completion notifications. See `internal/config/config.go` for the full env var list (`GEMINI_MODEL`, `GEMINI_QUALITY_MODEL`, `MAX_CONCURRENCY`, `RATE_INTERVAL_SEC`).
 
-No linter config or CI workflow is checked into this repo; `cloudbuild.yaml` builds the Docker image via Buildx and deploys it as a Cloud Run Job.
+CI (`.github/workflows/ci.yml`) runs build/vet/gofmt/race-test, golangci-lint, and govulncheck on pushes and PRs to `main` and `develop`. `cloudbuild.yaml` builds the Docker image via Buildx and deploys it as a Cloud Run Job.
+
+Coverage is uneven by design: `internal/config` and `internal/pipeline` are at 100%, `internal/runner` and `internal/adapters` cover the pure logic (segmentation, Markdown rendering, prompt building), and `internal/builder` / `internal/app` are untested because they only wire real GCS and Gemini clients together.
 
 ## Architecture
 
@@ -49,6 +52,9 @@ Request flow (see `README.md` for the full mermaid sequence diagram):
 - **`segmentText` (`internal/runner/compose.go`) is deliberately character-count based, not token-based.** `go-gemini-client`'s `CountTokens`/`CountTokensWithParts` (available since v1.13.0) make a real network call with retries — using them per split-candidate would add significant latency/cost and compete with the same rate limiter used for Map/Reduce calls. This was evaluated and intentionally rejected; don't "fix" it without discussing the tradeoff.
 - **This repo is one of a family of `github.com/shouni/*` Go modules** (`go-gemini-client`, `go-web-exact`, `go-web-reader`, `go-remote-io`, `go-notifier`, `go-prompt-kit`, `go-utils`, `netarmor`, `clibase`, `go-http-kit`) that are versioned and released independently. If a bug appears to originate in one of these (not in `internal/`), check whether the library has a local checkout as a sibling directory before assuming it must be patched by pinning `replace` in `go.mod`.
 - Builder functions in `internal/builder/runners.go` only take `ctx context.Context` when they actually use it (`buildComposer`, for the Gemini client init). `buildCollector`/`buildPublisher` don't — don't add it back "for consistency" without a real caller.
-- Init-failure errors in `internal/builder` are wrapped via the shared `wrapInitErr(name, err)` helper (`internal/builder/errors.go`) rather than ad hoc `fmt.Errorf` per call site.
+- Init-failure errors in `internal/builder` are wrapped via the shared `wrapInitErr(name, err)` helper (`internal/builder/errors.go`) rather than ad hoc `fmt.Errorf` per call site. The one remaining `fmt.Errorf` (`io.go`, the nil-factory check) is a precondition, not an init failure.
+- **`internal/adapters` deliberately does not import `google.golang.org/genai`.** `gemini.Schema` is an alias for `genai.Schema` and `MultimodalGenerator.GenerateWithAttachments` is the genai-free entry point for text generation, so schemas and calls are written against `go-gemini-client` alone. That also keeps the client mock to a single method. Don't reintroduce `genai.Part` unless multimodal input actually needs Part-level control.
+- **`pipeline.Execute` registers its failure-notification defer before validating the request.** Running as a Cloud Run Job means nobody reads stdout, so an input-validation failure has to reach Slack too.
+- **`config.envNonEmpty` treats an env var that is set but empty as unset.** `envutil.GetEnv` uses `os.LookupEnv` and returns the empty value; `cloudbuild.yaml` passes `GEMINI_MODEL=${_GEMINI_MODEL}` unconditionally, so an empty substitution would otherwise wipe out the default model name.
 - **`gemini.GenerateOptions.ResponseSchema` requires `ResponseMIMEType: "application/json"` to be set explicitly alongside it** — Gemini rejects the call with `Error 400: Response_schema with a response mime type 'text/plain' is unsupported` otherwise. Both `RunMap` and `RunReduce` in `internal/adapters/composer.go` set both fields together; don't drop one when touching this code.
 - The `title`/`sections[].heading`/`.body` fields from the Reduce phase are rendered straight into Markdown by `adapters.MarkdownConverter` (`# `/`## ` headings, plain paragraphs). `prompt_reduce.md` explicitly tells the model `body` must be plain text with no Markdown syntax — the model's Markdown decorations would otherwise show up literally (e.g. a literal `**word**`) rather than being interpreted.

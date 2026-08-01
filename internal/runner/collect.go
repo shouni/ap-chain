@@ -1,3 +1,4 @@
+// Package runner は、パイプラインの各フェーズの業務ロジックを提供します。
 package runner
 
 import (
@@ -20,6 +21,7 @@ type ContentReader interface {
 	Open(ctx context.Context, uri string) (io.ReadCloser, error)
 }
 
+// CollectRunner は、入力ソースのURL一覧を読み取りスクレイピングを実行します。
 type CollectRunner struct {
 	reader  ContentReader
 	scraper ports.ScrapeRunner
@@ -65,15 +67,16 @@ func (r *CollectRunner) Run(ctx context.Context, sourceURI string) ([]domain.URL
 	// rawResults の要素数が既知であるため、キャパシティを事前に割り当ててアロケーションを最適化
 	validResults := make([]domain.URLResult, 0, len(rawResults))
 	for _, res := range rawResults {
+		switch {
 		// エラーがなく、コンテンツが空でないものだけを採用
-		if res.Error == nil && res.Content != "" {
+		case res.Error == nil && res.Content != "":
 			validResults = append(validResults, domain.URLResult{
 				URL:     res.URL,
 				Content: res.Content,
 			})
-		} else if res.Error != nil {
+		case res.Error != nil:
 			slog.WarnContext(ctx, "スクレイピングに失敗したURLをスキップしました", "url", res.URL, "error", res.Error)
-		} else {
+		default:
 			// エラーはないがコンテンツが空の場合もログに残し、トラブルシューティングを容易にする
 			slog.WarnContext(ctx, "コンテンツが空のためURLをスキップしました", "url", res.URL)
 		}

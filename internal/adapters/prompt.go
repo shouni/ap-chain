@@ -54,7 +54,7 @@ func (p *PromptAdapter) GenerateMap(text string) (string, error) {
 	}
 	prompt, err := p.builder.Build("map", data)
 	if err != nil {
-		return "", fmt.Errorf("Mapテンプレートの構築に失敗: %w", err)
+		return "", fmt.Errorf("プロンプトの構築に失敗しました (Map): %w", err)
 	}
 	return prompt, nil
 }
@@ -72,7 +72,7 @@ func (p *PromptAdapter) GenerateReduce(segments []domain.Segment) (string, error
 	}
 	prompt, err := p.builder.Build("reduce", data)
 	if err != nil {
-		return "", fmt.Errorf("Reduceテンプレートの構築に失敗: %w", err)
+		return "", fmt.Errorf("プロンプトの構築に失敗しました (Reduce): %w", err)
 	}
 	return prompt, nil
 }

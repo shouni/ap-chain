@@ -16,11 +16,11 @@ func buildRemoteIO(storage remoteio.IOFactory) (*app.RemoteIO, error) {
 
 	w, err := storage.OutputWriter()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create output writer: %w", err)
+		return nil, wrapInitErr("OutputWriter", err)
 	}
 	s, err := storage.URLSigner()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create URL signer: %w", err)
+		return nil, wrapInitErr("URLSigner", err)
 	}
 
 	return &app.RemoteIO{

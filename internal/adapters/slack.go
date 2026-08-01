@@ -23,7 +23,7 @@ func NewSlackAdapter(httpClient httpkit.Requester, webhookURL string) (*SlackAda
 
 	client, err := slack.NewClient(httpClient, webhookURL)
 	if err != nil {
-		return nil, fmt.Errorf("Slackクライアントの初期化に失敗しました: %w", err)
+		return nil, fmt.Errorf("通知クライアント(Slack)の初期化に失敗しました: %w", err)
 	}
 
 	return &SlackAdapter{

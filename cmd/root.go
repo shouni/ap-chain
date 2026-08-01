@@ -29,7 +29,7 @@ func Execute() {
 // --- アプリケーション固有のカスタム関数 ---
 
 // initAppPreRunE は、共通処理の後に実行される初期化ロジックです。
-func initAppPreRunE(cmd *cobra.Command, args []string) error {
+func initAppPreRunE(_ *cobra.Command, _ []string) error {
 	opts.FillDefaults(config.LoadConfig())
 	opts.Normalize()
 

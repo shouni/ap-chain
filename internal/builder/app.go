@@ -1,8 +1,8 @@
+// Package builder は、外部サービスとの接続を確立し Container を組み立てます。
 package builder
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log/slog"
 
@@ -30,12 +30,12 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 	// 1. I/O Infrastructure (GCS)
 	storage, err := gcs.New(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create GCS factory: %w", err)
+		return nil, wrapInitErr("GCSファクトリ", err)
 	}
 	resources = append(resources, storage)
 	rio, err := buildRemoteIO(storage)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize IO components: %w", err)
+		return nil, wrapInitErr("IOコンポーネント", err)
 	}
 
 	httpClient := httpkit.New(cfg.HTTPTimeout)
@@ -43,7 +43,7 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 	// 2. Slack Adapter
 	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize Slack adapter: %w", err)
+		return nil, wrapInitErr("Slackアダプタ", err)
 	}
 
 	appCtx := &app.Container{
@@ -56,7 +56,7 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 	// 3. Pipeline (Core Logic)
 	p, err := buildPipeline(ctx, appCtx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build pipeline: %w", err)
+		return nil, wrapInitErr("パイプライン", err)
 	}
 	appCtx.Pipeline = p
 

@@ -1,3 +1,4 @@
+// Package cmd は、Cobra によるコマンド定義を提供します。
 package cmd
 
 import (
@@ -23,7 +24,7 @@ var generateCmd = &cobra.Command{
 }
 
 // generateCommand は、入力ソースからLLMマルチステップを実行し、指定されたURIのクラウドストレージにWアップロード
-func generateCommand(cmd *cobra.Command, args []string) error {
+func generateCommand(cmd *cobra.Command, _ []string) error {
 	ctx := cmd.Context()
 	appCtx, err := builder.BuildContainer(ctx, &opts)
 	if err != nil {

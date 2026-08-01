@@ -2,7 +2,6 @@ package builder
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/shouni/go-remote-io/remoteio"
 	scraperBuilder "github.com/shouni/go-web-exact/v2/builder"
@@ -22,7 +21,7 @@ func buildCollector(appCtx *app.Container) (*runner.CollectRunner, error) {
 		}),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize content reader: %w", err)
+		return nil, wrapInitErr("ContentReader", err)
 	}
 
 	opts := []scraper.Option{
@@ -75,10 +74,11 @@ func buildComposer(ctx context.Context, appCtx *app.Container) (*runner.ComposeR
 }
 
 // buildPublisher は、Publisher のインスタンスを構築して返します。
-func buildPublisher(appCtx *app.Container) (*runner.PublishRunner, error) {
+// 失敗しうる初期化を含まないため error は返しません。
+func buildPublisher(appCtx *app.Container) *runner.PublishRunner {
 	return runner.NewPublishRunner(
 		appCtx.RemoteIO.Writer,
 		appCtx.RemoteIO.Signer,
 		adapters.NewMarkdownConverter(),
-	), nil
+	)
 }

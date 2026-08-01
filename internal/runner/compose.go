@@ -37,6 +37,7 @@ type Models struct {
 	ReduceModel string
 }
 
+// ComposeRunner は、収集結果に対して MapReduce による構成処理を実行します。
 type ComposeRunner struct {
 	composer Composer
 	models   Models
@@ -87,6 +88,9 @@ func (r *ComposeRunner) composeAndStructureText(ctx context.Context, results []d
 	if err != nil {
 		return "", fmt.Errorf("セグメント処理（Mapフェーズ）に失敗しました: %w", err)
 	}
+	if len(cleanedSegments) == 0 {
+		return "", errors.New("Mapフェーズが有効なセグメントを1つも返しませんでした")
+	}
 
 	// 3. Reduceフェーズ：最終的な統合と構造化
 	slog.InfoContext(ctx, "Final structuring started (Reduce phase)")
@@ -105,7 +109,18 @@ func (r *ComposeRunner) composeAndStructureText(ctx context.Context, results []d
 }
 
 // segmentText は、テキストを最大文字数を超えないように分割します。
+// maxChars が 0 以下の場合は分割しようがないため、分割せずに全文を1セグメントとして返します。
+// ガードが無いと切り出し幅が 0 になり、空セグメントを無限に積み続けます。
 func segmentText(ctx context.Context, text string, maxChars int) []string {
+	if text == "" {
+		return nil
+	}
+	if maxChars <= 0 {
+		slog.WarnContext(ctx, "maxChars が 0 以下のため分割せずに返します",
+			slog.Int("max_chars", maxChars))
+		return []string{text}
+	}
+
 	var segments []string
 
 	for len(text) > 0 {

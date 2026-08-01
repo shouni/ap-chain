@@ -1,3 +1,4 @@
+// Package assets は、埋め込みプロンプトテンプレートを提供します。
 package assets
 
 import (
@@ -11,6 +12,8 @@ const (
 	promptPrefix = "prompt_"
 )
 
+// PromptFiles は、Map/Reduce 各フェーズのプロンプトテンプレートを保持します。
+//
 //go:embed prompts/prompt_*.md
 var PromptFiles embed.FS
 

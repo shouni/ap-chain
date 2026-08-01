@@ -1,3 +1,4 @@
+// Package domain は、層をまたいで共有する型とインターフェースを定義します。
 package domain
 
 import (

@@ -1,3 +1,4 @@
+// Package app は、起動時に構築した依存関係をまとめて保持する Container を提供します。
 package app
 
 import (

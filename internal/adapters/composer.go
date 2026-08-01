@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/shouni/go-gemini-client/gemini"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
-	"google.golang.org/genai"
 
 	"ap-chain/internal/config"
 	"ap-chain/internal/domain"
@@ -24,14 +24,14 @@ type PromptBuilder interface {
 
 // ComposerAdapter は、LLMを使用してコンテンツを構成するAdapter層の実装です。
 type ComposerAdapter struct {
-	aiClient       gemini.Generator
+	aiClient       gemini.MultimodalGenerator
 	promptBuilder  PromptBuilder
 	maxConcurrency int
 	rateInterval   time.Duration
 }
 
 // NewComposerAdapter は、ComposerAdapter の新しいインスタンスを生成します。
-func NewComposerAdapter(ai gemini.Generator, pb PromptBuilder, opts ...ComposerOption) (*ComposerAdapter, error) {
+func NewComposerAdapter(ai gemini.MultimodalGenerator, pb PromptBuilder, opts ...ComposerOption) (*ComposerAdapter, error) {
 	if ai == nil || pb == nil {
 		return nil, fmt.Errorf("aiClient and promptBuilder are required")
 	}
@@ -49,6 +49,7 @@ func NewComposerAdapter(ai gemini.Generator, pb PromptBuilder, opts ...ComposerO
 	return c, nil
 }
 
+// ComposerOption は ComposerAdapter の設定を変更する関数型です。
 type ComposerOption func(*ComposerAdapter)
 
 // WithMaxConcurrency は、最大並列数を設定します。
@@ -101,8 +102,7 @@ func (a *ComposerAdapter) RunMap(ctx context.Context, model string, allSegments 
 				return fmt.Errorf("セグメント %d 処理失敗: %w", i+1, err)
 			}
 
-			parts := []*genai.Part{{Text: prompt}}
-			response, err := a.aiClient.GenerateWithParts(ctx, model, parts, gemini.GenerateOptions{
+			response, err := a.aiClient.GenerateWithAttachments(ctx, model, prompt, nil, gemini.GenerateOptions{
 				ResponseMIMEType: "application/json",
 				ResponseSchema:   mapOutputSchema(),
 			})
@@ -129,7 +129,23 @@ func (a *ComposerAdapter) RunMap(ctx context.Context, model string, allSegments 
 		return nil, err
 	}
 
-	return cleaned, nil
+	return compactSegments(ctx, cleaned), nil
+}
+
+// compactSegments は、本文が空になったセグメントを取り除きます。
+// モデルが空の cleaned_text を返した場合、そのまま Reduce へ渡すと
+// 出典URLだけを持つ中身のない要素がプロンプトに載るため、ここで落とします。
+func compactSegments(ctx context.Context, segments []domain.Segment) []domain.Segment {
+	compacted := make([]domain.Segment, 0, len(segments))
+	for _, seg := range segments {
+		if strings.TrimSpace(seg.Text) == "" {
+			slog.WarnContext(ctx, "本文が空のセグメントを除外しました", slog.String("url", seg.URL))
+			continue
+		}
+		compacted = append(compacted, seg)
+	}
+
+	return compacted
 }
 
 // RunReduce は中間要約を統合し、最終的な構造化レポートのJSON文字列を生成します。
@@ -143,8 +159,7 @@ func (a *ComposerAdapter) RunReduce(ctx context.Context, model string, segments 
 		return "", fmt.Errorf("最終 Reduce プロンプトの生成に失敗しました: %w", err)
 	}
 
-	parts := []*genai.Part{{Text: prompt}}
-	response, err := a.aiClient.GenerateWithParts(ctx, model, parts, gemini.GenerateOptions{
+	response, err := a.aiClient.GenerateWithAttachments(ctx, model, prompt, nil, gemini.GenerateOptions{
 		ResponseMIMEType: "application/json",
 		ResponseSchema:   reduceOutputSchema(),
 	})

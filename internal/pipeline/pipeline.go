@@ -31,17 +31,19 @@ func New(col Collector, com Composer, pub Publisher, n domain.Notifier) *Pipelin
 
 // Execute は一連の処理（収集・構成・公開）を順次実行します。
 func (p *Pipeline) Execute(ctx context.Context, req domain.Request) (err error) {
-	// 0. バリデーション
-	if req.InputURI == "" || req.OutputURI == "" {
-		return errors.New("InputURI and OutputURI are required")
-	}
-
-	// 1. エラー発生時の遅延通知
+	// 0. エラー発生時の遅延通知。
+	// バリデーションより先に登録するのは、Cloud Run Job として動かす際に
+	// 標準出力を見る人がおらず、入力不備も Slack へ届かないと気付けないためです。
 	defer func() {
 		if err != nil {
 			p.notifyFailure(ctx, err)
 		}
 	}()
+
+	// 1. バリデーション
+	if req.InputURI == "" || req.OutputURI == "" {
+		return errors.New("InputURI and OutputURI are required")
+	}
 
 	// 2. Collect (Webコンテンツの並列収集)
 	results, err := p.collector.Run(ctx, req.InputURI)

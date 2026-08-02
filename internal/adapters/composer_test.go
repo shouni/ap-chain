@@ -7,7 +7,7 @@ import (
 
 	"github.com/shouni/go-gemini-client/gemini"
 
-	"ap-chain/internal/domain"
+	"github.com/shouni/ap-chain/internal/domain"
 )
 
 // mockGeminiClient は gemini.MultimodalGenerator インターフェースのモックです。

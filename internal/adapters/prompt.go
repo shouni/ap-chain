@@ -6,8 +6,8 @@ import (
 
 	"github.com/shouni/go-prompt-kit/prompts"
 
-	"ap-chain/assets"
-	"ap-chain/internal/domain"
+	"github.com/shouni/ap-chain/assets"
+	"github.com/shouni/ap-chain/internal/domain"
 )
 
 // MapTemplateData は、Mapフェーズ（個別セグメントの要約）で使用するテンプレートデータです。

@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"ap-chain/internal/domain"
+	"github.com/shouni/ap-chain/internal/domain"
 )
 
 // stubComposer は Composer の呼び出しを記録するテスト用の実装です。

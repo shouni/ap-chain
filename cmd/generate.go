@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"ap-chain/internal/builder"
-	"ap-chain/internal/domain"
+	"github.com/shouni/ap-chain/internal/builder"
+	"github.com/shouni/ap-chain/internal/domain"
 )
 
 // generateCmd は、メインのCLIコマンド定義です。

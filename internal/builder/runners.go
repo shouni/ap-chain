@@ -8,9 +8,9 @@ import (
 	"github.com/shouni/go-web-exact/v2/scraper"
 	"github.com/shouni/go-web-reader/pkg/reader"
 
-	"ap-chain/internal/adapters"
-	"ap-chain/internal/app"
-	"ap-chain/internal/runner"
+	"github.com/shouni/ap-chain/internal/adapters"
+	"github.com/shouni/ap-chain/internal/app"
+	"github.com/shouni/ap-chain/internal/runner"
 )
 
 // buildCollector は、CollectRunner のインスタンスを構築して返します。

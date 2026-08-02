@@ -4,7 +4,7 @@ import (
 	"github.com/shouni/clibase"
 	"github.com/spf13/cobra"
 
-	"ap-chain/internal/config"
+	"github.com/shouni/ap-chain/internal/config"
 )
 
 const (

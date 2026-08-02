@@ -12,8 +12,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
 
-	"ap-chain/internal/config"
-	"ap-chain/internal/domain"
+	"github.com/shouni/ap-chain/internal/config"
+	"github.com/shouni/ap-chain/internal/domain"
 )
 
 // PromptBuilder は、プロンプト文字列を生成する責務を定義します。

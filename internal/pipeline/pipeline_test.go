@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"ap-chain/internal/domain"
+	"github.com/shouni/ap-chain/internal/domain"
 )
 
 type stubCollector struct {

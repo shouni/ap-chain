@@ -3,9 +3,9 @@ package builder
 import (
 	"context"
 
-	"ap-chain/internal/app"
-	"ap-chain/internal/domain"
-	"ap-chain/internal/pipeline"
+	"github.com/shouni/ap-chain/internal/app"
+	"github.com/shouni/ap-chain/internal/domain"
+	"github.com/shouni/ap-chain/internal/pipeline"
 )
 
 // buildPipeline は、各コンポーネントを構築し、新しいパイプラインを初期化して返します。

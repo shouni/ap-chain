@@ -9,7 +9,7 @@ import (
 
 	"github.com/shouni/go-gemini-client/gemini"
 
-	"ap-chain/internal/config"
+	"github.com/shouni/ap-chain/internal/config"
 )
 
 const (

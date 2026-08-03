@@ -9,9 +9,9 @@ import (
 	"github.com/shouni/go-http-kit/httpkit"
 	"github.com/shouni/go-remote-io/remoteio/gcs"
 
-	"ap-chain/internal/adapters"
-	"ap-chain/internal/app"
-	"ap-chain/internal/config"
+	"github.com/shouni/ap-chain/internal/adapters"
+	"github.com/shouni/ap-chain/internal/app"
+	"github.com/shouni/ap-chain/internal/config"
 )
 
 // BuildContainer は外部サービスとの接続を確立し、依存関係を組み立てた app.Container を返します。

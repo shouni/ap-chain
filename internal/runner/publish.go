@@ -7,8 +7,8 @@ import (
 
 	"github.com/shouni/go-remote-io/remoteio"
 
-	"ap-chain/internal/config"
-	"ap-chain/internal/domain"
+	"github.com/shouni/ap-chain/internal/config"
+	"github.com/shouni/ap-chain/internal/domain"
 )
 
 // converter は、構造化レポートJSONをMarkdownへ変換する契約です。

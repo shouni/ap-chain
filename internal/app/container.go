@@ -7,8 +7,8 @@ import (
 	"github.com/shouni/go-http-kit/httpkit"
 	"github.com/shouni/go-remote-io/remoteio"
 
-	"ap-chain/internal/config"
-	"ap-chain/internal/domain"
+	"github.com/shouni/ap-chain/internal/config"
+	"github.com/shouni/ap-chain/internal/domain"
 )
 
 // Container はアプリケーションの依存関係（DIコンテナ）を保持します。

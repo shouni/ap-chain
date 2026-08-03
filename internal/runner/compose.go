@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"ap-chain/internal/domain"
+	"github.com/shouni/ap-chain/internal/domain"
 )
 
 const (

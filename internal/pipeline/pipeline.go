@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"ap-chain/internal/domain"
+	"github.com/shouni/ap-chain/internal/domain"
 )
 
 // Pipeline は各コンポーネントを統合し、実行を管理するオーケストレーターです。

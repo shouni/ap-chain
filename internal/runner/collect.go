@@ -12,8 +12,8 @@ import (
 	"github.com/shouni/go-web-exact/v2/ports"
 	"github.com/shouni/netarmor/securenet"
 
-	"ap-chain/internal/config"
-	"ap-chain/internal/domain"
+	"github.com/shouni/ap-chain/internal/config"
+	"github.com/shouni/ap-chain/internal/domain"
 )
 
 // ContentReader は、指定されたURIからコンテンツを取得するためのインターフェースです。

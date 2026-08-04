@@ -45,7 +45,7 @@ AP Chain は以下の自作ライブラリ群を統合して構築されてい�
 * **[Go Web Reader](https://github.com/shouni/go-web-reader)**: マルチプロトコル I/O と本文抽出。
 * **[Go Remote IO](https://github.com/shouni/go-remote-io)**: GCS/ローカルストレージの抽象化。
 * **[Go Web Exact](https://github.com/shouni/go-web-exact)**: 高精度なメインコンテンツ抽出。
-* **[Go Notifier](https://github.com/shouni/go-notifier)**: Webhookを利用したSlack通知。
+* **[Go Notify](https://github.com/shouni/go-notify)**: Webhookを利用したSlack通知。
 
 -----
 

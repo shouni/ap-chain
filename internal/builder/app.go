@@ -41,7 +41,7 @@ func BuildContainer(ctx context.Context, cfg *config.Config) (container *app.Con
 	httpClient := httpkit.New(cfg.HTTPTimeout)
 
 	// 2. Slack Adapter
-	slack, err := adapters.NewSlackAdapter(httpClient, cfg.SlackWebhookURL)
+	slack, err := adapters.NewSlackAdapter(httpClient.WithoutRetry(), cfg.SlackWebhookURL)
 	if err != nil {
 		return nil, wrapInitErr("Slackアダプタ", err)
 	}

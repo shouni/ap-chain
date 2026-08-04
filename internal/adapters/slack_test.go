@@ -147,3 +147,41 @@ func TestNewSlackAdapterRequiresHTTPClientWhenWebhookSet(t *testing.T) {
 		t.Fatal("HTTPクライアントが nil なのにエラーになりません")
 	}
 }
+
+// TestNotifySetsLevel は、完了・失敗が種別を伴って送信されることを検証します。
+// Slack 側はこれを attachment の色に落とすため、見出しの絵文字とは別に必要です。
+func TestNotifySetsLevel(t *testing.T) {
+	tests := []struct {
+		name string
+		call func(a *SlackAdapter) error
+		want notify.Level
+	}{
+		{
+			name: "完了",
+			call: func(a *SlackAdapter) error {
+				return a.NotifySuccess(context.Background(), "gs://out/doc.md", "https://example.com/doc.md", 3)
+			},
+			want: notify.LevelSuccess,
+		},
+		{
+			name: "失敗",
+			call: func(a *SlackAdapter) error {
+				return a.NotifyFailure(context.Background(), errors.New("boom"))
+			},
+			want: notify.LevelFailure,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			adapter, rec := newTestSlackAdapter()
+
+			if err := tt.call(adapter); err != nil {
+				t.Fatalf("通知に失敗しました: %v", err)
+			}
+			if got := rec.last(t).Level; got != tt.want {
+				t.Errorf("Level = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

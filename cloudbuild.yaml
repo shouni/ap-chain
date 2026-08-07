@@ -6,8 +6,6 @@ substitutions:
   _SERVICE_NAME: 'ap-chain'
   _TAG: '${_ENV_PREFIX}-${SHORT_SHA}'
   _CACHE_TAG: '${_ENV_PREFIX}-latest'
-  _GEMINI_MODEL: 'gemini-3.6-flash'
-  _GEMINI_QUALITY_MODEL: 'gemini-3.1-pro-preview'
 
 steps:
   - name: 'gcr.io/cloud-builders/docker'
@@ -40,8 +38,7 @@ steps:
       - '${_SERVICE_NAME}'
       - '--image=${_IMAGE_BASE}/${PROJECT_ID}/${_REPO_PATH}:${_TAG}'
       - '--region=${_REGION}'
-      - '--update-env-vars'
-      - 'GCP_PROJECT_ID=${PROJECT_ID},GCP_LOCATION_ID=${_REGION},GEMINI_MODEL=${_GEMINI_MODEL},GEMINI_QUALITY_MODEL=${_GEMINI_QUALITY_MODEL}'
+      - '--quiet'
 
 options:
   machineType: 'E2_HIGHCPU_8'

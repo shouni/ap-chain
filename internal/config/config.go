@@ -3,6 +3,7 @@
 package config
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -18,10 +19,6 @@ const (
 	// scraper
 	defaultParallel = 5
 
-	// AI
-	defaultMapModelName    = "gemini-3-flash-preview"
-	defaultReduceModelName = "gemini-3-flash-preview"
-
 	// DefaultMaxConcurrency は、LLM呼び出しのデフォルト最大並列数です。
 	DefaultMaxConcurrency = 1
 	// DefaultRateInterval は、LLM呼び出しのデフォルトレート制限間隔です。
@@ -36,10 +33,15 @@ type Config struct {
 	HTTPTimeout        time.Duration
 	MaxScraperParallel int
 
-	ProjectID       string
-	GeminiAPIKey    string
-	MapModel        string
-	ReduceModel     string
+	ProjectID    string
+	GeminiAPIKey string
+
+	// GeminiModel は Map / Reduce の両フェーズで使うモデル名です。既定値は持たず、
+	// --model か GEMINI_MODEL で必ず指定させます。モデル ID が古くなるのは Google の
+	// リリース周期であってこのリポジトリの都合ではないため、既定値を置くと
+	// 誰も気付かないまま古いモデルを使い続けることになります。
+	GeminiModel string
+
 	MaxConcurrency  int
 	RateInterval    time.Duration
 	SlackWebhookURL string
@@ -52,8 +54,7 @@ func (c *Config) Normalize() {
 	}
 	c.InputFile = strings.TrimSpace(c.InputFile)
 	c.OutputFile = strings.TrimSpace(c.OutputFile)
-	c.MapModel = strings.TrimSpace(c.MapModel)
-	c.ReduceModel = strings.TrimSpace(c.ReduceModel)
+	c.GeminiModel = strings.TrimSpace(c.GeminiModel)
 	c.ProjectID = strings.TrimSpace(c.ProjectID)
 	c.GeminiAPIKey = strings.TrimSpace(c.GeminiAPIKey)
 	c.SlackWebhookURL = strings.TrimSpace(c.SlackWebhookURL)
@@ -67,11 +68,8 @@ func (c *Config) FillDefaults(envCfg *Config) {
 	if c.GeminiAPIKey == "" {
 		c.GeminiAPIKey = envCfg.GeminiAPIKey
 	}
-	if c.MapModel == "" {
-		c.MapModel = envCfg.MapModel
-	}
-	if c.ReduceModel == "" {
-		c.ReduceModel = envCfg.ReduceModel
+	if c.GeminiModel == "" {
+		c.GeminiModel = envCfg.GeminiModel
 	}
 
 	if c.SlackWebhookURL == "" {
@@ -88,27 +86,23 @@ func (c *Config) FillDefaults(envCfg *Config) {
 	c.MaxScraperParallel = defaultParallel
 }
 
+// Validate は実行に最低限必要な設定が揃っているかを確認します。
+// フラグと環境変数の両方を見たあと（FillDefaults の後）に呼びます。
+func (c *Config) Validate() error {
+	if c.GeminiModel == "" {
+		return errors.New("モデル名が指定されていません。--model / -g フラグか GEMINI_MODEL 環境変数で指定してください")
+	}
+	return nil
+}
+
 // LoadConfig は環境変数から設定を読み込みます。
 func LoadConfig() *Config {
 	return &Config{
 		ProjectID:       envutil.GetEnv("GCP_PROJECT_ID", ""),
 		GeminiAPIKey:    envutil.GetEnv("GEMINI_API_KEY", ""),
 		SlackWebhookURL: envutil.GetEnv("SLACK_WEBHOOK_URL", ""),
-		MapModel:        envNonEmpty("GEMINI_MODEL", defaultMapModelName),
-		ReduceModel:     envNonEmpty("GEMINI_QUALITY_MODEL", defaultReduceModelName),
+		GeminiModel:     envutil.GetEnv("GEMINI_MODEL", ""),
 		MaxConcurrency:  envutil.GetEnvAsInt("MAX_CONCURRENCY", DefaultMaxConcurrency),
 		RateInterval:    time.Duration(envutil.GetEnvAsInt("RATE_INTERVAL_SEC", int(DefaultRateInterval/time.Second))) * time.Second,
 	}
-}
-
-// envNonEmpty は、空文字で設定された環境変数を未設定として扱い既定値を返します。
-//
-// envutil.GetEnv は os.LookupEnv を使うため「設定されているが空」でもその空文字を返します。
-// cloudbuild.yaml はモデル名を無条件に環境変数へ渡すので、置換が空のまま起動すると
-// 既定値が効かず、モデル名が空のまま実行しようとしてしまいます。
-func envNonEmpty(key, defaultValue string) string {
-	if v := strings.TrimSpace(envutil.GetEnv(key, "")); v != "" {
-		return v
-	}
-	return defaultValue
 }

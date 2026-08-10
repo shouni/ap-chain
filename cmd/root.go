@@ -33,15 +33,14 @@ func initAppPreRunE(_ *cobra.Command, _ []string) error {
 	opts.FillDefaults(config.LoadConfig())
 	opts.Normalize()
 
-	return nil
+	return opts.Validate()
 }
 
 // addAppPersistentFlags は、アプリケーション固有の永続フラグをルートコマンドに追加します。
 func addAppPersistentFlags(rootCmd *cobra.Command) {
 	rootCmd.PersistentFlags().StringVarP(&opts.InputFile, "input", "i", "", "処理対象のURLリストファイル (必須)")
 	rootCmd.PersistentFlags().StringVarP(&opts.OutputFile, "output", "o", "./output/output.md", "出力ファイル (local or gs://)")
-	rootCmd.PersistentFlags().StringVar(&opts.MapModel, "map-model", "", "Map処理で使用する Google Gemini モデル名 (例: gemini-2.5-flash)")
-	rootCmd.PersistentFlags().StringVar(&opts.ReduceModel, "reduce-model", "", "Reduce処理で使用する Google Gemini モデル名 (例: gemini-2.5-pro)")
+	rootCmd.PersistentFlags().StringVarP(&opts.GeminiModel, "model", "g", "", "Map / Reduce で使用する Google Gemini モデル名（必須。環境変数 GEMINI_MODEL でも指定できます）")
 
 	_ = rootCmd.MarkPersistentFlagRequired("input")
 }

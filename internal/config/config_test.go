@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -10,8 +11,7 @@ func TestConfig_Normalize(t *testing.T) {
 		c := &Config{
 			InputFile:       "  urls.txt \n",
 			OutputFile:      "\tout.md ",
-			MapModel:        " map ",
-			ReduceModel:     " reduce ",
+			GeminiModel:     " model ",
 			ProjectID:       " proj ",
 			GeminiAPIKey:    " key ",
 			SlackWebhookURL: " https://hooks.example.com/x ",
@@ -21,8 +21,7 @@ func TestConfig_Normalize(t *testing.T) {
 		tests := map[string]struct{ got, want string }{
 			"InputFile":       {c.InputFile, "urls.txt"},
 			"OutputFile":      {c.OutputFile, "out.md"},
-			"MapModel":        {c.MapModel, "map"},
-			"ReduceModel":     {c.ReduceModel, "reduce"},
+			"GeminiModel":     {c.GeminiModel, "model"},
 			"ProjectID":       {c.ProjectID, "proj"},
 			"GeminiAPIKey":    {c.GeminiAPIKey, "key"},
 			"SlackWebhookURL": {c.SlackWebhookURL, "https://hooks.example.com/x"},
@@ -52,30 +51,38 @@ func TestConfig_FillDefaults(t *testing.T) {
 	env := &Config{
 		ProjectID:       "env-proj",
 		GeminiAPIKey:    "env-key",
-		MapModel:        "env-map",
-		ReduceModel:     "env-reduce",
+		GeminiModel:     "env-model",
 		SlackWebhookURL: "env-hook",
 		MaxConcurrency:  4,
 		RateInterval:    5 * time.Second,
 	}
 
 	t.Run("空のフィールドだけが環境設定で補完される", func(t *testing.T) {
-		c := &Config{MapModel: "flag-map", MaxConcurrency: 9}
+		c := &Config{GeminiModel: "flag-model", MaxConcurrency: 9}
 		c.FillDefaults(env)
 
 		// 明示指定されたものは維持される
-		if c.MapModel != "flag-map" {
-			t.Errorf("MapModel = %q, want flag-map（フラグ指定が上書きされています）", c.MapModel)
+		if c.GeminiModel != "flag-model" {
+			t.Errorf("GeminiModel = %q, want flag-model（フラグ指定が上書きされています）", c.GeminiModel)
 		}
 		if c.MaxConcurrency != 9 {
 			t.Errorf("MaxConcurrency = %d, want 9", c.MaxConcurrency)
 		}
 		// 空のものは環境設定で埋まる
-		if c.ProjectID != "env-proj" || c.ReduceModel != "env-reduce" || c.SlackWebhookURL != "env-hook" {
+		if c.ProjectID != "env-proj" || c.SlackWebhookURL != "env-hook" {
 			t.Errorf("環境設定で補完されていません: %+v", c)
 		}
 		if c.RateInterval != 5*time.Second {
 			t.Errorf("RateInterval = %v, want 5s", c.RateInterval)
+		}
+	})
+
+	t.Run("モデル名が空なら環境設定で補完される", func(t *testing.T) {
+		c := &Config{}
+		c.FillDefaults(env)
+
+		if c.GeminiModel != "env-model" {
+			t.Errorf("GeminiModel = %q, want env-model", c.GeminiModel)
 		}
 	})
 
@@ -113,27 +120,31 @@ func TestConfig_FillDefaults(t *testing.T) {
 }
 
 func TestLoadConfig(t *testing.T) {
-	t.Run("環境変数が未設定なら既定値が入る", func(t *testing.T) {
+	// 既定値へ黙って落ちると、古いモデルを使い続けたまま気付けません。
+	t.Run("モデル名が未設定なら Validate が落とす", func(t *testing.T) {
 		for _, key := range []string{
 			"GCP_PROJECT_ID", "GEMINI_API_KEY", "SLACK_WEBHOOK_URL",
-			"GEMINI_MODEL", "GEMINI_QUALITY_MODEL", "MAX_CONCURRENCY", "RATE_INTERVAL_SEC",
+			"GEMINI_MODEL", "MAX_CONCURRENCY", "RATE_INTERVAL_SEC",
 		} {
 			t.Setenv(key, "")
 		}
 
-		c := LoadConfig()
-		if c.MapModel != defaultMapModelName {
-			t.Errorf("MapModel = %q, want %q", c.MapModel, defaultMapModelName)
+		c := &Config{}
+		c.FillDefaults(LoadConfig())
+		c.Normalize()
+
+		err := c.Validate()
+		if err == nil {
+			t.Fatal("モデル名未指定が素通りした")
 		}
-		if c.ReduceModel != defaultReduceModelName {
-			t.Errorf("ReduceModel = %q, want %q", c.ReduceModel, defaultReduceModelName)
+		if !strings.Contains(err.Error(), "GEMINI_MODEL") {
+			t.Errorf("エラーに指定方法が無い: %v", err)
 		}
 	})
 
 	t.Run("環境変数が設定されていれば反映される", func(t *testing.T) {
 		t.Setenv("GCP_PROJECT_ID", "my-proj")
-		t.Setenv("GEMINI_MODEL", "my-map-model")
-		t.Setenv("GEMINI_QUALITY_MODEL", "my-reduce-model")
+		t.Setenv("GEMINI_MODEL", "my-model")
 		t.Setenv("MAX_CONCURRENCY", "8")
 		t.Setenv("RATE_INTERVAL_SEC", "3")
 
@@ -141,8 +152,8 @@ func TestLoadConfig(t *testing.T) {
 		if c.ProjectID != "my-proj" {
 			t.Errorf("ProjectID = %q, want my-proj", c.ProjectID)
 		}
-		if c.MapModel != "my-map-model" || c.ReduceModel != "my-reduce-model" {
-			t.Errorf("モデル設定が反映されていません: map=%q reduce=%q", c.MapModel, c.ReduceModel)
+		if c.GeminiModel != "my-model" {
+			t.Errorf("GeminiModel = %q, want my-model", c.GeminiModel)
 		}
 		if c.MaxConcurrency != 8 {
 			t.Errorf("MaxConcurrency = %d, want 8", c.MaxConcurrency)

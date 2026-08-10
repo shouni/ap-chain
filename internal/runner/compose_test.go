@@ -42,36 +42,28 @@ func (s *stubComposer) RunReduce(ctx context.Context, model string, segs []domai
 	return `{"title":"t"}`, nil
 }
 
-func testModels() Models {
-	return Models{MapModel: "map-model", ReduceModel: "reduce-model"}
-}
+const testModel = "test-model"
 
 func TestNewComposeRunner(t *testing.T) {
 	tests := []struct {
 		name     string
 		composer Composer
-		models   Models
+		model    string
 		wantErr  bool
 	}{
-		{name: "正常系", composer: &stubComposer{}, models: testModels()},
-		{name: "異常系: composerがnil", composer: nil, models: testModels(), wantErr: true},
+		{name: "正常系", composer: &stubComposer{}, model: testModel},
+		{name: "異常系: composerがnil", composer: nil, model: testModel, wantErr: true},
 		{
-			name:     "異常系: MapModelが空",
+			name:     "異常系: モデル名が空",
 			composer: &stubComposer{},
-			models:   Models{ReduceModel: "r"},
-			wantErr:  true,
-		},
-		{
-			name:     "異常系: ReduceModelが空",
-			composer: &stubComposer{},
-			models:   Models{MapModel: "m"},
+			model:    "",
 			wantErr:  true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewComposeRunner(tt.composer, tt.models)
+			_, err := NewComposeRunner(tt.composer, tt.model)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("NewComposeRunner() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -82,13 +74,13 @@ func TestNewComposeRunner(t *testing.T) {
 func TestComposeRunner_Run(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("正常系: MapとReduceが設定されたモデルで順に呼ばれる", func(t *testing.T) {
+	t.Run("正常系: MapとReduceが同じモデルで順に呼ばれる", func(t *testing.T) {
 		stub := &stubComposer{
 			reduceFunc: func(context.Context, string, []domain.Segment) (string, error) {
 				return "  {\"title\":\"結果\"}  ", nil
 			},
 		}
-		r, err := NewComposeRunner(stub, testModels())
+		r, err := NewComposeRunner(stub, testModel)
 		if err != nil {
 			t.Fatalf("NewComposeRunner() error = %v", err)
 		}
@@ -105,7 +97,7 @@ func TestComposeRunner_Run(t *testing.T) {
 		if want := `{"title":"結果"}`; got != want {
 			t.Errorf("Run() = %q, want %q", got, want)
 		}
-		if stub.mapModel != "map-model" || stub.reduceModel != "reduce-model" {
+		if stub.mapModel != testModel || stub.reduceModel != testModel {
 			t.Errorf("モデルの割り当てが不正です: map=%q reduce=%q", stub.mapModel, stub.reduceModel)
 		}
 		// URL ごとにセグメント化され、出典URLが保持される
@@ -118,7 +110,7 @@ func TestComposeRunner_Run(t *testing.T) {
 	})
 
 	t.Run("異常系: urlsが空", func(t *testing.T) {
-		r, _ := NewComposeRunner(&stubComposer{}, testModels())
+		r, _ := NewComposeRunner(&stubComposer{}, testModel)
 		if _, err := r.Run(ctx, nil); err == nil {
 			t.Error("空の urls でエラーになりませんでした")
 		}
@@ -131,7 +123,7 @@ func TestComposeRunner_Run(t *testing.T) {
 				return nil, wantErr
 			},
 		}
-		r, _ := NewComposeRunner(stub, testModels())
+		r, _ := NewComposeRunner(stub, testModel)
 
 		_, err := r.Run(ctx, []domain.URLResult{{URL: "u", Content: "c"}})
 		if !errors.Is(err, wantErr) {
@@ -149,7 +141,7 @@ func TestComposeRunner_Run(t *testing.T) {
 				return nil, nil
 			},
 		}
-		r, _ := NewComposeRunner(stub, testModels())
+		r, _ := NewComposeRunner(stub, testModel)
 
 		if _, err := r.Run(ctx, []domain.URLResult{{URL: "u", Content: "c"}}); err == nil {
 			t.Error("Mapが空を返したのにエラーになりませんでした")
@@ -165,7 +157,7 @@ func TestComposeRunner_Run(t *testing.T) {
 				return "   \n  ", nil
 			},
 		}
-		r, _ := NewComposeRunner(stub, testModels())
+		r, _ := NewComposeRunner(stub, testModel)
 
 		if _, err := r.Run(ctx, []domain.URLResult{{URL: "u", Content: "c"}}); err == nil {
 			t.Error("空の Reduce 結果でエラーになりませんでした")

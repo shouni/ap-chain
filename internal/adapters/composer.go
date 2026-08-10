@@ -24,14 +24,14 @@ type PromptBuilder interface {
 
 // ComposerAdapter は、LLMを使用してコンテンツを構成するAdapter層の実装です。
 type ComposerAdapter struct {
-	aiClient       gemini.MultimodalGenerator
+	aiClient       gemini.Generator
 	promptBuilder  PromptBuilder
 	maxConcurrency int
 	rateInterval   time.Duration
 }
 
 // NewComposerAdapter は、ComposerAdapter の新しいインスタンスを生成します。
-func NewComposerAdapter(ai gemini.MultimodalGenerator, pb PromptBuilder, opts ...ComposerOption) (*ComposerAdapter, error) {
+func NewComposerAdapter(ai gemini.Generator, pb PromptBuilder, opts ...ComposerOption) (*ComposerAdapter, error) {
 	if ai == nil || pb == nil {
 		return nil, fmt.Errorf("aiClient and promptBuilder are required")
 	}

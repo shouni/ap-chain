@@ -60,7 +60,14 @@ export GCP_PROJECT_ID="YOUR_GCP_PROJECT_ID"
 export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
 # Slack Webhook URL (任意: 指定すると通知が有効になります)
 export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
+
+# 使用する Gemini モデル名 (必須: --model / -g でも指定できます)
+export GEMINI_MODEL="使用するモデル ID"
 ```
+
+**モデル名にアプリ側の既定値はありません。** モデル ID が古くなるのは Google のリリース周期で
+あってこのリポジトリの都合ではないため、既定値があると「設定を変えていないのに古いモデルを
+使い続ける」状態に気付けなくなります。未指定なら実行前にエラーになります。
 
 ---
 
@@ -74,6 +81,7 @@ export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
 | :--- | :--- | :--- | :--- |
 | `--input`  | `-i` | **処理対象のURLリストを記載したファイルパス**を指定します。ローカルパスまたは**GCS URI (`gs://...`)** を指定できます。 **(必須)** | なし |
 | `--output` | `-o` | **最終的な構造化結果の出力先パス**を指定します。ローカルパスまたは**GCS URI (`gs://...`)** を指定できます。GCS URIを指定した場合、ローカルへの出力はスキップされます。 | `./output/output.md` |
+| `--model`  | `-g` | **Map / Reduce の両フェーズで使う Gemini モデル名**。環境変数 `GEMINI_MODEL` でも指定できます。 **(必須)** | なし |
 
 ---
 

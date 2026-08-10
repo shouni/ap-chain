@@ -10,7 +10,7 @@ import (
 	"github.com/shouni/ap-chain/internal/domain"
 )
 
-// mockGeminiClient は gemini.MultimodalGenerator インターフェースのモックです。
+// mockGeminiClient は gemini.Generator インターフェースのモックです。
 // genai の型を含まない 1 メソッドのインターフェースなので、これだけで足ります。
 type mockGeminiClient struct {
 	generateWithPartsFunc func(opts gemini.GenerateOptions) (*gemini.Response, error)

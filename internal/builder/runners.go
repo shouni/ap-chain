@@ -61,11 +61,7 @@ func buildComposer(ctx context.Context, appCtx *app.Container) (*runner.ComposeR
 		return nil, wrapInitErr("Composer Adapter", err)
 	}
 
-	models := runner.Models{
-		MapModel:    appCtx.Config.MapModel,
-		ReduceModel: appCtx.Config.ReduceModel,
-	}
-	composer, err := runner.NewComposeRunner(composerAdapter, models)
+	composer, err := runner.NewComposeRunner(composerAdapter, appCtx.Config.GeminiModel)
 	if err != nil {
 		return nil, wrapInitErr("Composer", err)
 	}

@@ -3,16 +3,16 @@ module github.com/shouni/ap-chain
 go 1.26
 
 require (
-	github.com/shouni/clibase v1.0.4
-	github.com/shouni/go-gemini-client v1.17.0
+	github.com/shouni/clibase v1.0.5
+	github.com/shouni/go-gemini-client v1.17.1
 	github.com/shouni/go-http-kit v1.8.0
 	github.com/shouni/go-notify v1.2.2
-	github.com/shouni/go-prompt-kit v1.4.1
+	github.com/shouni/go-prompt-kit v1.4.2
 	github.com/shouni/go-remote-io v1.8.0
-	github.com/shouni/go-utils v1.5.0
+	github.com/shouni/go-utils v1.5.1
 	github.com/shouni/go-web-exact/v2 v2.5.2
 	github.com/shouni/go-web-reader v1.2.0
-	github.com/shouni/netarmor v1.2.0
+	github.com/shouni/netarmor v1.2.1
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/sync v0.22.0
 	golang.org/x/time v0.15.0

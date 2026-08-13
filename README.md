@@ -4,8 +4,7 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/shouni/ap-chain)](https://golang.org/)
 [![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/shouni/ap-chain)](https://github.com/shouni/ap-chain/tags)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Go Report Card](https://goreportcard.com/badge/github.com/shouni/ap-chain)](https://goreportcard.com/report/github.com/shouni/ap-chain)
-[![Status](https://img.shields.io/badge/Status-Completed-brightgreen)](#)
+[![Status](https://img.shields.io/badge/Status-Archived-lightgrey)](#)
 
 ## 🌟 概要
 
